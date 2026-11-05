@@ -18,9 +18,18 @@ jobs:
           node-version: '22'
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: |
+            8.0.x
+            10.0.x
       - name: Compilar puente Canon x64
         run: dotnet publish camera-bridge/DemiCameraBridge.csproj -c Release -r win-x64 --self-contained true -o camera-bridge/publish
+      - name: Descargar motor Wi-Fi de código abierto FC.SDK
+        shell: pwsh
+        run: |
+          git clone https://github.com/SharpAstro/FC.SDK.git fc-sdk
+          git -C fc-sdk checkout 0800943d2d4aaaa8ffc5da11b5ce57bfed9614a7
+      - name: Compilar puente Wi-Fi PTP/IP
+        run: dotnet publish wifi-bridge/DemiWifiBridge.csproj -c Release -r win-x64 --self-contained true -o wifi-bridge/publish
       - name: Incluir ExifTool para vistas previas RAW (CR2/CR3)
         shell: pwsh
         run: |
