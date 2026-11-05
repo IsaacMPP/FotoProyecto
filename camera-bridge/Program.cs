@@ -114,11 +114,13 @@ internal static class EDSDK
     [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Ansi)]
     public struct DirectoryItemInfo
     {
-        public uint size;
+        public ulong size;
         [MarshalAs(UnmanagedType.Bool)] public bool isFolder;
         public uint groupId;
         public uint option;
         [MarshalAs(UnmanagedType.ByValTStr,SizeConst=256)] public string fileName;
+        public uint format;
+        public uint dateTime;
     }
     [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall)] public static extern uint EdsInitializeSDK();
     [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall)] public static extern uint EdsTerminateSDK();
@@ -133,7 +135,7 @@ internal static class EDSDK
     [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall)] public static extern uint EdsSetCapacity(IntPtr camera,Capacity capacity);
     [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall)] public static extern uint EdsGetDirectoryItemInfo(IntPtr item,out DirectoryItemInfo info);
     [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall,CharSet=CharSet.Ansi)] public static extern uint EdsCreateFileStream(string path,uint disposition,uint access,out IntPtr stream);
-    [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall)] public static extern uint EdsDownload(IntPtr item,uint size,IntPtr stream);
+    [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall)] public static extern uint EdsDownload(IntPtr item,ulong size,IntPtr stream);
     [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall)] public static extern uint EdsDownloadComplete(IntPtr item);
     [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall)] public static extern uint EdsDownloadCancel(IntPtr item);
     [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall)] public static extern uint EdsGetEvent();
