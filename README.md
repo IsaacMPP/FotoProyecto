@@ -193,3 +193,13 @@ Pendiente: validar sesión abierta y descarga de una foto real. No se considera 
 - La copia RAW/JPEG y el modo Wi-Fi nativo permanecen disponibles, sin requerir EOS Utility. La velocidad real depende del tamaño del archivo, las interferencias y el enlace de la Canon.
 
 **Nota:** no se garantiza una transferencia más rápida del archivo completo por encima del límite de Wi-Fi de la cámara. La mejora de interfaz puede ahorrar parte de la espera entre el final de la transferencia y su aparición en pantalla. Validar con tres disparos JPG en una sesión real.
+
+
+## v0.8.5 — Modo de sesión JPEG rápida (RAW solo en tarjeta)
+**Motivo medido:** Canon EOS 6D Mark II descarga JPEG de 4–5 MB en aproximadamente 1–1.3 s, mientras RAW de 29–30 MB tardan 7.5–8.2 s y bloquean el JPEG siguiente en la misma conexión de control. Es un límite real de transferencia, no un retraso principal de la galería.
+
+- Nueva opción **JPEG rápido al PC · RAW en tarjeta Canon**, activada por defecto en nuevas instalaciones. Enciende la sesión con la cámara en **RAW+JPEG** y verifica que se guardan ambos en la tarjeta.
+- Con esta opción activada, Demi descarga el JPEG original completo al PC y al visor, sin recompresión. **Omite la transferencia RAW al ordenador** y confirma el evento de transferencia en el canal Canon. Los RAW permanecen en la tarjeta si la cámara está configurada para guardar en tarjeta y PC. Antes de trabajar con clientes, realizar una prueba verificando físicamente que se conservan los CR2 en la tarjeta.
+- En modo completo (casilla desactivada), Demi seguirá descargando JPEG y RAW al PC, tardando lo correspondiente al tamaño de los RAW. Cambiar la casilla mientras está conectado requiere desconectar y volver a conectar.
+- Los objetos cuyo nombre falla en la consulta CanonGetObjectInfo se ignoran en modo rápido; su contenido no se elimina de la tarjeta. Si se dispara **solo RAW**, el modo rápido NO descarga RAW al PC ni ofrece vista JPEG completa; es imprescindible **RAW+JPEG**.
+- No se prometen tiempos exactos para cada disparo, ni se afirma que aumentar la frecuencia de polling acelere el enlace. Verificar los mensajes "Foto original ... descargada en ... s" tras realizar tres disparos separados.
