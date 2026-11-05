@@ -1,4 +1,4 @@
-# Demi Tether Studio v0.5.0 — Windows
+# Demi Visor Studio v0.5.0 — Windows
 
 ## Canon USB directo
 
@@ -11,7 +11,7 @@ Se ha integrado un puente nativo de .NET 8 para **Canon EDSDK**. Al pulsar **Con
 2. Coloca `EDSDK.dll` y los binarios complementarios oficiales junto a `DemiCameraBridge.exe`.
 3. Conecta la cámara por USB, desactiva Wi-Fi en la Canon y cierra EOS Utility / otras apps que usen la cámara.
 4. En la cámara usa **JPEG** o **RAW+JPEG** (el visor admite JPG, PNG, WebP; los RAW descargados no se muestran).
-5. Abre Demi Tether Studio, elige carpeta y pulsa **Conectar Canon 6D Mark II**.
+5. Abre Demi Visor Studio, elige carpeta y pulsa **Conectar Canon 6D Mark II**.
 6. Dispara físicamente, comprueba que el archivo llega a la carpeta y se proyecta en el televisor.
 
 **Estado de pruebas:** el código puente es una implementación preliminar sin prueba física con la Canon 6D Mark II. El SDK tiene versiones y estructuras nativas que deben validarse con el paquete que proporciona Canon. Si hay errores de inicialización, no se considerará funcional hasta resolverlos.
@@ -72,7 +72,7 @@ Documentación oficial de Canon sobre conexión a computadora: https://ph.canon/
 
 ## Emparejamiento Canon Wi-Fi v0.7.1 (Err 11)
 
-Se corrigió el fallo de diseño anterior: buscar solo TCP/15740 no equivale a descubrir/emparejar una cámara Canon. Demi Tether Studio ahora escucha anuncios DNS-SD/mDNS `_ptp._tcp.local` sobre UDP/5353 y, si no aparecen, utiliza la IP manual o un sondeo de la red local. Además, se crea y guarda un **GUID de cliente estable** en `camera-settings.json` y se reutiliza en los siguientes handshakes PTP/IP; FC.SDK, sin este cambio, creaba un GUID distinto en cada conexión.
+Se corrigió el fallo de diseño anterior: buscar solo TCP/15740 no equivale a descubrir/emparejar una cámara Canon. Demi Visor Studio ahora escucha anuncios DNS-SD/mDNS `_ptp._tcp.local` sobre UDP/5353 y, si no aparecen, utiliza la IP manual o un sondeo de la red local. Además, se crea y guarda un **GUID de cliente estable** en `camera-settings.json` y se reutiliza en los siguientes handshakes PTP/IP; FC.SDK, sin este cambio, creaba un GUID distinto en cada conexión.
 
 **Importante:** la detección mDNS y el GUID persistente son necesarios para muchos modelos, pero por sí solos **no prueban que el EOS 6D Mark II acepte el emparejamiento**. Puede requerirse una secuencia Canon adicional todavía no implementada. Se debe comprobar en la cámara la pantalla de autorización, luego capturar una foto real. Nunca se describe conexión efectiva solo porque responda el puerto.
 
@@ -101,7 +101,7 @@ Fuentes: https://sg.canon/en/support/8203590200 ; https://cascable.se/help/troub
 
 ### Alternativa funcional inmediata sin cable entre cámara y PC
 1. Usa EOS Utility 3 oficial de Canon en Windows para emparejar la EOS 6D Mark II por Wi-Fi (conexión EOS Utility, no smartphone). En la Canon, selecciona registrar un equipo nuevo y en Windows conecta a la SSID Canon indicada o usa la misma red.
-2. Dentro de EOS Utility, abre **Configuración de cámara/Disparo remoto** y configura **Preferencias → Carpeta de destino** a la misma carpeta seleccionada en Demi Tether Studio. Desactiva la creación de subcarpetas, si está activada; el visor actual monitoriza la carpeta elegida, no carpetas anidadas.
+2. Dentro de EOS Utility, abre **Configuración de cámara/Disparo remoto** y configura **Preferencias → Carpeta de destino** a la misma carpeta seleccionada en Demi Visor Studio. Desactiva la creación de subcarpetas, si está activada; el visor actual monitoriza la carpeta elegida, no carpetas anidadas.
 3. Si disparas RAW+JPEG, marca la opción **transferir solamente JPEG al ordenador**; así el visor puede mostrar el JPEG rápidamente mientras el CR2 se conserva en la tarjeta.
 4. Configura guardar las tomas también en la tarjeta. Usa el disparador físico de Canon; EOS Utility transfiere el JPEG a Windows, Demi lo detecta y lo presenta en el televisor.
 5. No conectes simultáneamente el puente USB/PTP de Demi a la cámara: dos programas de control pueden competir por la sesión. Si vas a usar el modo oficial temporal, desactiva **Conectar y reconectar automáticamente** en Demi, y usa solamente **Elegir carpeta** para visualizar.
@@ -114,7 +114,7 @@ Objetivo final: eliminar EOS Utility cuando se valide el emparejamiento nativo e
 
 
 ## v0.7.4 — modo Wi-Fi asistido para trabajar sin cable
-Este modo se diseñó para la Canon EOS 6D Mark II, mientras se investiga el emparejamiento nativo. El Wi-Fi y la transferencia los gestiona el programa oficial Canon EOS Utility 3; Demi Tether Studio recibe sus JPEG mediante la carpeta de destino y los presenta en la vista principal y en el televisor. **No es comunicación PTP/IP directa de Demi con la cámara**.
+Este modo se diseñó para la Canon EOS 6D Mark II, mientras se investiga el emparejamiento nativo. El Wi-Fi y la transferencia los gestiona el programa oficial Canon EOS Utility 3; Demi Visor Studio recibe sus JPEG mediante la carpeta de destino y los presenta en la vista principal y en el televisor. **No es comunicación PTP/IP directa de Demi con la cámara**.
 
 - Instalar y emparejar [EOS Utility 3 oficial](https://www.usa.canon.com/support/p/eos-6d-mark-ii). En Canon: Control remoto (EOS Utility) → Registrar dispositivo para conexión. PC y cámara deben utilizar la red correcta.
 - En EOS Utility configurar *Remote Shooting / Disparo remoto* → Preferencias → Carpeta de destino a una carpeta conocida, preferiblemente sin subcarpetas adicionales. Elegir descarga JPG o disparar RAW+JPG para visualización inmediata; guardar RAW originales en tarjeta si se desea.
@@ -140,10 +140,10 @@ Para la prueba: usar modo **Solo Wi-Fi**, desactivar temporalmente la reconexió
 
 **Prueba controlada:**
 1. En Windows, salir por completo de EOS Utility, incluido su proceso de asociación en segundo plano.
-2. En Demi Tether Studio, apagar **Conectar y reconectar automáticamente**.
+2. En Demi Visor Studio, apagar **Conectar y reconectar automáticamente**.
 3. En Canon: función Wi-Fi → **Control remoto (EOS Utility)** → **Registrar dispositivo para conexión**. Crear una asociación nueva; no elegir la conexión guardada de EOS Utility.
 4. Unirse desde Windows a la misma red de la cámara.
-5. En Demi pulsar **Emparejar Demi con Canon (sin EOS Utility)** una sola vez. La aplicación genera un nuevo GUID local de cliente, lo guarda y utiliza el nombre *Demi Tether Studio*. No se borra ni suplanta la identidad de EOS Utility.
+5. En Demi pulsar **Emparejar Demi con Canon (sin EOS Utility)** una sola vez. La aplicación genera un nuevo GUID local de cliente, lo guarda y utiliza el nombre *Demi Visor Studio*. No se borra ni suplanta la identidad de EOS Utility.
 6. Si la Canon pide permiso para la conexión con el ordenador, confirmar. Si completa la sesión, disparar tres JPG de prueba.
 7. Si falla, pulsar **Abrir diagnóstico Wi-Fi**. Se registran por separado: apertura del TCP de comandos, envío InitCommandRequest, tipo de respuesta, apertura del canal de eventos, envío InitEventRequest y respuesta. El registro no imprime el GUID.
 
@@ -211,3 +211,7 @@ Demi prioriza el anuncio mDNS _ptp._tcp de ICPO-WFTEOSSystemService para conecta
 La barra lateral solo muestra la cámara, estado, modo y botones Conectar/Desconectar. Opciones de cámara contiene la IP manual, búsqueda, selección, emparejamiento y herramientas EOS Utility, conservadas para casos especiales. El botón principal Conectar ahora respeta el modo Wi-Fi y busca la cámara sin intentar USB primero.
 
 Cuando la Canon registrada no esté anunciando el servicio PTP/IP correcto, se evita conectar a otro equipo solo por aparecer en SSDP. La conexión Wi-Fi y las funciones de transferencia existentes se mantienen. Verificar físicamente la reconexión al abrir Demi y reiniciar la Canon.
+
+
+## v0.8.7 — Cambio de marca a Demi Visor Studio
+La aplicación y el instalador se presentan como **Demi Visor Studio**. Se conserva intencionalmente el ID de aplicación `mx.demistudios.tether`, el nombre interno del paquete y la ruta de datos heredada `Demi Tether Studio` para no perder el GUID de emparejamiento Wi-Fi, las preferencias guardadas ni las fotografías anteriores. Los binarios auxiliares `DemiWifiBridge.exe` y `DemiCameraBridge.exe` conservan sus nombres internos para evitar incompatibilidades; la interfaz pública usa la nueva marca. Si en futuras versiones se desea cambiar también la ruta de fotos o el ID del instalador, debe implementarse una migración específica.
