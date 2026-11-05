@@ -67,3 +67,5 @@ body{display:flex;flex-direction:column}
 
 .wifi-assist{display:grid;gap:7px;padding:11px;border:1px solid #347e96;border-radius:11px;background:#102e3c;margin-bottom:7px}
 .wifi-assist strong{font-size:12px;color:#d5f6ff}.wifi-assist p{margin:0;color:#bad1df;font-size:11px;line-height:1.4}.wifi-assist .btn{width:100%;font-size:11px}.wifi-assist #wifi-assist-status{color:#83b7c6;overflow-wrap:anywhere}
+
+.wifi-speed-setting{margin:9px 0;padding:10px;border:1px solid #2b6880;border-radius:10px;background:#102a37}.wifi-speed-setting .switch-line{margin:0}.wifi-speed-setting strong{color:#bbf1ff}.wifi-speed-setting p{margin:6px 0 0;color:#afc4ce;font-size:11px;line-height:1.45}
