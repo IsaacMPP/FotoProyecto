@@ -48,3 +48,23 @@ Se recorren todas las carpetas visibles mediante EDSDK. Se cuentan JPEG y RAW CR
 - Botón **Ampliar vista** y atajo F11 para maximizar el área de trabajo; ESC sale de ese modo. En la ventana del cliente, ESC sale de pantalla completa sin cerrar la proyección.
 - Proyección: usa todos los píxeles disponibles del JPEG original recibido, sin reducción deliberada de resolución; la calidad máxima **está limitada por la resolución del archivo origen**. Un CR2/CR3 mostrado mediante JPEG incrustado no equivale a un revelado RAW a resolución completa.
 - Mantiene la conexión Canon y controles existentes.
+
+
+## Detección de cámara USB/Wi-Fi v0.7.0
+- Inicio automático: intenta USB y, si no hay cámara, busca Wi-Fi en la red local IPv4 /24. La búsqueda detecta TCP PTP/IP en el puerto 15740; encontrar el puerto **no garantiza** un emparejamiento autorizado.
+- Si la Canon se desconecta, el visor mantiene la última imagen recibida y se intenta reconectar. El usuario recibe aviso dentro de la aplicación y notificación del sistema (si Windows la permite).
+- Preferencias persistentes: Automática / Solo USB / Solo Wi-Fi, activación de autoconexión y dirección IP manual para redes no descubiertas.
+- Wi-Fi implementado mediante biblioteca [FC.SDK](https://github.com/SharpAstro/FC.SDK), MIT, versión fijada `0800943d2d4aaaa8ffc5da11b5ce57bfed9614a7`; no necesita EDSDK para Wi-Fi. PTP/IP en puerto TCP 15740.
+- El conector Wi-Fi recibe eventos de nuevos disparos y descarga RAW/JPEG; los RAW usan la vista JPEG incorporada cuando Canon la ofrece. Se conservan los originales en el directorio de sesión.
+- USB continúa con el puente Canon EDSDK de las versiones anteriores.
+
+### Primer emparejamiento Wi-Fi EOS 6D Mark II
+1. Enciende Wi-Fi de la Canon, abre **Ajustes de comunicación inalámbrica → Función Wi-Fi → Conectar con computadora (EOS Utility)**, y selecciona la red del estudio o la conexión directa según el menú de Canon.
+2. Conecta Windows a la misma red que la cámara. Revisa que ambas direcciones IP correspondan a la red local; si el modo directo requiere cambiar de red, hazlo desde Windows.
+3. En la aplicación, selecciona **Solo Wi-Fi** para probarla sin interferencia USB y pulsa **Buscar cámara Wi-Fi**. Si la detección no funciona, introduce la IP de la Canon y pulsa **Conectar por Wi-Fi**.
+4. Confirma en la cámara cualquier solicitud de autorización/emparejamiento si aparece.
+5. Dispara desde el botón físico de la cámara y comprueba que llega un JPEG a la galería y al televisor.
+
+**Estado de compatibilidad:** el motor PTP/IP está implementado, pero sus autores solo reportan pruebas físicas con EOS 6D original, no con la EOS 6D Mark II. Tampoco hemos podido probar la 6D Mark II físicamente en este entorno. Puede ser necesario añadir el protocolo de emparejamiento EOS específico si la Canon no autoriza la sesión. No se considera validado hasta recibir una fotografía real por Wi-Fi, aunque GitHub Actions compile exitosamente.
+
+Documentación oficial de Canon sobre conexión a computadora: https://ph.canon/en/support/8203590200
