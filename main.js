@@ -5,7 +5,7 @@ const {spawn,execFile}=require('node:child_process');const {randomUUID}=require(
 const dgram=require('node:dgram');const fs=require('node:fs');const path=require('node:path');const os=require('node:os');const {Notification}=require('electron');
 let main=null,projection=null,folder=path.join(app.getPath('pictures'),'Demi Tether Studio');
 let list=[],position=-1,auto=true,displayId=null,observer=null;const sizes=new Map();
-let cameraProc=null,camera='Canon no conectada',cameraMode='USB',connected=false,autoConnect=true,wifiIp='',scanBusy=false,lastAlert='',lastWifiScan=0,nextUsbAttempt=0,desiredMode='auto',autoTimer=null,nextWifiAttempt=0,pairGuid=randomUUID(),pairingAttempt=false,assistedWifi=false,assistedReceived=0;
+let cameraProc=null,camera='Canon no conectada',cameraMode='USB',connected=false,autoConnect=true,wifiIp='',scanBusy=false,lastAlert='',lastWifiScan=0,nextUsbAttempt=0,desiredMode='auto',autoTimer=null,nextWifiAttempt=0,pairGuid=randomUUID(),pairingAttempt=false,assistedWifi=false,assistedReceived=0,wifiCandidates=[];
 const preferencesFile=path.join(app.getPath('userData'),'camera-settings.json');
 function canonUtilityRunning(){
  return new Promise(resolve=>{
@@ -22,56 +22,72 @@ try{const c=JSON.parse(fs.readFileSync(preferencesFile,'utf8'));wifiIp=String(c.
 function savePrefs(){try{fs.mkdirSync(path.dirname(preferencesFile),{recursive:true});fs.writeFileSync(preferencesFile,JSON.stringify({wifiIp,autoConnect,mode:desiredMode,pairGuid,assistedWifi,assistedFolder:assistedWifi?folder:''},null,2));}catch(e){console.error('Preferences',e.message);}}
 function inform(message,kind='info'){if(lastAlert===message)return;lastAlert=message;for(const w of [main,projection])if(w&&!w.isDestroyed())w.webContents.send('camera-alert',{message,kind});if(Notification.isSupported()){try{new Notification({title:'Demi Tether Studio',body:message}).show();}catch{}}}
 function isPrivateIp(ip){const m=/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip);if(!m)return false;const a=m.slice(1).map(Number);return a.every(x=>x>=0&&x<=255)&&(a[0]===10||(a[0]===172&&a[1]>=16&&a[1]<=31)||(a[0]===192&&a[1]===168)||(a[0]===169&&a[1]===254));}
-async function discoverMdns(waitMs=7500){
-  let bonjour=null,browser=null;const candidates=new Set();
-  try{
-    bonjour=new Bonjour();
-    browser=bonjour.find({type:'ptp',protocol:'tcp'},service=>{
-      for(const address of service.addresses||[])if(isPrivateIp(address))candidates.add(address);
-      if(isPrivateIp(service.referer?.address))candidates.add(service.referer.address);
-    });
-    await new Promise(resolve=>setTimeout(resolve,waitMs));
-  }catch(e){console.error('mDNS discovery',e.message);}
-  finally{try{browser?.stop();}catch{}try{bonjour?.destroy();}catch{}}
-  return candidates.values().next().value||null;
-}
-async function discoverSsdp(waitMs=7000){
- const candidates=new Set();const sockets=[];const interfaces=Object.values(os.networkInterfaces()).flat().filter(n=>n&&n.family==='IPv4'&&!n.internal);
+async function discoverMdns(waitMs=6500){
+ let bonjour=null,browser=null;
+ const found=new Map();
  try{
-   for(const network of interfaces){
-     const socket=dgram.createSocket({type:'udp4',reuseAddr:true});sockets.push(socket);
-     socket.on('error',e=>console.error('SSDP Canon:',e.message));
-     socket.on('message',(buffer,peer)=>{
-       const message=buffer.toString('utf8');
-       if(!/schemas-canon-com:service:ICPO-WFTEOSSystemService|Canon Device Discovery|Canon EOS/i.test(message))return;
-       if(isPrivateIp(peer.address))candidates.add(peer.address);
-       const location=/^location:\s*([^\r\n]+)/im.exec(message)?.[1];
-       if(location){try{const url=new URL(location);if(isPrivateIp(url.hostname))candidates.add(url.hostname);}catch{}}
-     });
-     await new Promise(resolve=>{
-       socket.once('listening',()=>{try{socket.addMembership('239.255.255.250',network.address);}catch(e){console.error('SSDP membership:',e.message);}resolve();});
-       socket.once('error',resolve);
-       try{socket.bind(1900,'0.0.0.0');}catch{resolve();}
-     });
-     const search='M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: 2\r\nST: urn:schemas-canon-com:service:ICPO-WFTEOSSystemService:1\r\n\r\n';
-     try{socket.setMulticastInterface(network.address);socket.send(Buffer.from(search),1900,'239.255.255.250');}catch(e){console.error('SSDP search:',e.message);}
-   }
-   await new Promise(resolve=>setTimeout(resolve,waitMs));
- } finally{for(const socket of sockets)try{socket.close();}catch{}}
- return candidates.values().next().value||null;
+  bonjour=new Bonjour();
+  browser=bonjour.find({type:'ptp',protocol:'tcp'},service=>{
+   const name=String(service.name||service.host||'Dispositivo PTP/IP').slice(0,100);
+   for(const ip of service.addresses||[])
+    if(isPrivateIp(ip))found.set(ip,{ip,source:'mDNS _ptp._tcp',name});
+  });
+  await new Promise(resolve=>setTimeout(resolve,waitMs));
+ }catch(e){diagnostic('mDNS error',e.message);}
+ finally{try{browser?.stop();}catch{}try{bonjour?.destroy();}catch{}}
+ return [...found.values()];
+}
+async function discoverSsdp(waitMs=6500){
+ const found=new Map(),sockets=[];
+ const interfaces=Object.values(os.networkInterfaces()).flat().filter(n=>n&&n.family==='IPv4'&&!n.internal);
+ try{
+  for(const network of interfaces){
+   const socket=dgram.createSocket({type:'udp4',reuseAddr:true});sockets.push(socket);
+   socket.on('error',e=>diagnostic('SSDP error',e.message));
+   socket.on('message',(buffer,peer)=>{
+    const message=buffer.toString('utf8');
+    if(!/schemas-canon-com:service:ICPO-WFTEOSSystemService|Canon Device Discovery|Canon EOS/i.test(message))return;
+    const location=/^location:\s*([^\r\n]+)/im.exec(message)?.[1];
+    const usn=/^usn:\s*([^\r\n]+)/im.exec(message)?.[1];
+    const name=String(usn||'Canon SSDP').slice(0,100);
+    if(isPrivateIp(peer.address))found.set(peer.address,{ip:peer.address,source:'SSDP Canon',name});
+    if(location){try{const url=new URL(location);if(isPrivateIp(url.hostname))found.set(url.hostname,{ip:url.hostname,source:'SSDP LOCATION',name});}catch{}}
+   });
+   await new Promise(resolve=>{
+    let settled=false;const finish=()=>{if(!settled){settled=true;resolve();}};
+    socket.once('listening',()=>{try{socket.addMembership('239.255.255.250',network.address);}catch(e){diagnostic('SSDP membership',e.message);}finish();});
+    socket.once('error',finish);
+    try{socket.bind(1900,'0.0.0.0');}catch{finish();}
+   });
+   const search='M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: 2\r\nST: urn:schemas-canon-com:service:ICPO-WFTEOSSystemService:1\r\n\r\n';
+   try{socket.setMulticastInterface(network.address);socket.send(Buffer.from(search),1900,'239.255.255.250');}catch(e){diagnostic('SSDP search',e.message);}
+  }
+  await new Promise(resolve=>setTimeout(resolve,waitMs));
+ }finally{for(const socket of sockets)try{socket.close();}catch{}}
+ return [...found.values()];
 }
 async function discoverWifi(){
  if(scanBusy)return null;
  scanBusy=true;
  try{
-  // Canon puede reservar una sola conexión TCP PTP/IP para emparejar.
-  // NO abrir sockets de prueba al 15740: hay que enviar InitCommandRequest
-  // sobre la PRIMERA conexión real, sin consumir la sesión del equipo.
-  cameraStatus('Buscando anuncios de la Canon (sin abrir conexiones TCP previas)...');
-  const announced=await Promise.all([discoverMdns(6500),discoverSsdp(6500)]);
-  diagnostic('Anuncios de descubrimiento',JSON.stringify({mdns:announced[0],ssdp:announced[1]}));
-  const result=announced[1]||announced[0]||(isPrivateIp(wifiIp)?wifiIp:null);
-  diagnostic('Dirección candidata PTP/IP',result||'Sin anuncio ni dirección manual');
+  cameraStatus('Buscando anuncios PTP/IP sin abrir conexiones TCP previas...');
+  const [mdns,ssdp]=await Promise.all([discoverMdns(),discoverSsdp()]);
+  const merged=new Map();
+  for(const item of [...mdns,...ssdp]){
+   if(!merged.has(item.ip))merged.set(item.ip,{ip:item.ip,sources:[item.source],name:item.name});
+   else merged.get(item.ip).sources.push(item.source);
+  }
+  wifiCandidates=[...merged.values()].map(x=>({ip:x.ip,source:[...new Set(x.sources)].join(' + '),name:x.name}));
+  diagnostic('Dispositivos anunciados',JSON.stringify(wifiCandidates));
+  broadcast();
+  if(wifiCandidates.length>1){
+   cameraStatus('Se detectaron '+wifiCandidates.length+' direcciones diferentes. Selecciona la cámara en la lista y pulsa Conectar a dirección elegida. No se probará una IP arbitraria.');
+   diagnostic('Asociación detenida por ambigüedad','Selecciona una IP en la interfaz; no se inició TCP PTP/IP.');
+   return null;
+  }
+  const result=wifiCandidates[0]?.ip||(isPrivateIp(wifiIp)?wifiIp:null);
+  diagnostic('Dirección candidata PTP/IP',result||'Sin anuncio ni IP guardada');
+  if(!result)cameraStatus('Sin anuncios Canon. Comprueba que Windows y Canon estén en la misma red.');
   return result;
  }finally{scanBusy=false;}
 }
@@ -103,7 +119,7 @@ function connectCamera(silent=false){if(cameraProc)return view();const exe=bridg
  cameraMode='USB';if(!silent)cameraStatus('Buscando Canon por USB...');startBridge(exe,[folder],'USB');return view();}
 
 const supported=/\.(jpe?g|png|webp)$/i;
-function view(){return {folder,photos:list.map(p=>({id:p.file,name:path.basename(p.file)})),position,auto,displayId,displays:screen.getAllDisplays().map((d,i)=>({id:d.id,name:d.label||'Pantalla '+(i+1),bounds:d.bounds})),camera,cameraConnected:connected,cameraMode,assistedWifi,assistedReceived,wifiIp,autoConnect,desiredMode,zoom,panX,panY,projectFullscreen:!!projection&&!projection.isDestroyed()&&projection.isFullScreen()};}
+function view(){return {folder,photos:list.map(p=>({id:p.file,name:path.basename(p.file)})),position,auto,displayId,displays:screen.getAllDisplays().map((d,i)=>({id:d.id,name:d.label||'Pantalla '+(i+1),bounds:d.bounds})),camera,cameraConnected:connected,cameraMode,assistedWifi,assistedReceived,wifiIp,wifiCandidates,autoConnect,desiredMode,zoom,panX,panY,projectFullscreen:!!projection&&!projection.isDestroyed()&&projection.isFullScreen()};}
 function broadcast(){for(const w of [main,projection])if(w&&!w.isDestroyed())w.webContents.send('state-changed',view());}
 function scan(){try{fs.mkdirSync(folder,{recursive:true});const oldNewest=list.at(-1)?.file;const selected=list[position]?.file;const next=[];const found=new Set();for(const e of fs.readdirSync(folder,{withFileTypes:true})){if(!e.isFile()||!supported.test(e.name))continue;const f=path.join(folder,e.name);found.add(f);let st;try{st=fs.statSync(f);}catch{continue;}const prev=sizes.get(f);sizes.set(f,{size:st.size,mtime:st.mtimeMs});if(st.size>0&&prev&&prev.size===st.size&&prev.mtime===st.mtimeMs&&Date.now()-st.mtimeMs>350)next.push({file:f,mtime:st.mtimeMs});}for(const key of sizes.keys())if(!found.has(key))sizes.delete(key);next.sort((a,b)=>a.mtime-b.mtime||a.file.localeCompare(b.file));list=next;if(!list.length){position=-1;resetZoom();}else if(auto&&list.at(-1)?.file!==oldNewest){position=list.length-1;resetZoom();if(assistedWifi){assistedReceived++;if(assistedReceived===1)inform('Primera foto recibida desde la carpeta de EOS Utility','success');}}else if(selected){const idx=list.findIndex(x=>x.file===selected);position=idx>=0?idx:list.length-1;}else position=Math.max(0,Math.min(position,list.length-1));broadcast();}catch(err){console.error('Folder scan:',err.message);}}
 function move(step){if(list.length){const old=position;position=Math.max(0,Math.min(list.length-1,position+step));if(old!==position)resetZoom();}broadcast();}
@@ -122,7 +138,14 @@ app.whenReady().then(()=>{savePrefs();if(assistedWifi){camera='Wi-Fi asistido: e
   broadcast();
   const ip=await discoverWifi();
   if(ip&&!cameraProc)connectWifi(ip);
-  else{pairingAttempt=false;cameraStatus('No se detectó anuncio Canon. Confirma nueva conexión de PC y que EOS Utility esté cerrado.');}
+  else{pairingAttempt=false;if(wifiCandidates.length<=1)cameraStatus('No se detectó anuncio Canon. Confirma nueva conexión de PC y que EOS Utility esté cerrado.');}
   return view();
-});ipcMain.handle('camera-wifi-connect',(_e,ip)=>{if(cameraProc)disconnectCamera();assistedWifi=false;savePrefs();if(!isPrivateIp(String(ip)))return {error:'Introduce una IP privada válida de la cámara'};nextWifiAttempt=0;return connectWifi(String(ip));});ipcMain.handle('camera-config',(_e,config)=>{if(typeof config.autoConnect==='boolean'){autoConnect=config.autoConnect;if(autoConnect)assistedWifi=false;}if(['auto','usb','wifi'].includes(config.mode)&&desiredMode!==config.mode){desiredMode=config.mode;if(cameraProc&&((desiredMode==='wifi'&&cameraMode==='USB')||(desiredMode==='usb'&&cameraMode==='Wi-Fi')))disconnectCamera();nextUsbAttempt=0;lastWifiScan=0;nextWifiAttempt=0;setTimeout(automaticConnection,500);}if(typeof config.wifiIp==='string'&&config.wifiIp.length<32)wifiIp=config.wifiIp.trim();savePrefs();broadcast();if(autoConnect)setTimeout(automaticConnection,650);return view();});ipcMain.handle('camera-search',async()=>{const ip=await discoverWifi();if(ip&&!cameraProc){nextWifiAttempt=0;connectWifi(ip);}else if(!ip)cameraStatus('No se recibió un anuncio de Canon (SSDP 1900/mDNS 5353) ni hay IP manual. Conecta Windows a la misma red que la cámara.');return view();});ipcMain.handle('camera-disconnect',()=>{assistedWifi=false;autoConnect=false;savePrefs();disconnectCamera();broadcast();return view();});ipcMain.handle('select-folder',async()=>{const r=await dialog.showOpenDialog(main,{properties:['openDirectory','createDirectory'],defaultPath:folder});if(!r.canceled&&r.filePaths[0]){folder=r.filePaths[0];sizes.clear();list=[];position=-1;scan();}return view();});ipcMain.handle('project',(_e,id)=>{openProject(id);return view();});ipcMain.handle('close-project',()=>{if(projection&&!projection.isDestroyed())projection.close();return view();});ipcMain.handle('navigate',(_e,step)=>{move(step);return view();});ipcMain.handle('latest',()=>{position=list.length-1;resetZoom();broadcast();return view();});ipcMain.handle('toggle-auto',(_e,enabled)=>{auto=Boolean(enabled);if(auto){position=list.length-1;resetZoom();}broadcast();return view();});ipcMain.handle('photo',(_e,id)=>{const item=list.find(x=>x.file===id);if(!item)return null;return 'demiphoto://asset/'+Buffer.from(item.file).toString('base64url');});globalShortcut.register('Alt+Left',()=>move(-1));globalShortcut.register('Alt+Right',()=>move(1));globalShortcut.register('Alt+Home',()=>{position=list.length-1;resetZoom();broadcast();});observer=setInterval(scan,850);scan();autoTimer=setInterval(automaticConnection,12000);setTimeout(automaticConnection,1800);screen.on('display-added',broadcast);screen.on('display-removed',broadcast);});
+});ipcMain.handle('camera-wifi-selected',(_e,ip)=>{
+ const candidate=wifiCandidates.find(x=>x.ip===ip);
+ if(!candidate)return {error:'La dirección no está entre los dispositivos descubiertos. Vuelve a buscar.'};
+ if(cameraProc)return {error:'Hay otra conexión en curso; desconecta primero.'};
+ diagnostic('Dirección seleccionada por usuario',candidate.ip+' desde '+candidate.source);
+ nextWifiAttempt=0;
+ return connectWifi(candidate.ip);
+});ipcMain.handle('camera-wifi-connect',(_e,ip)=>{if(cameraProc)disconnectCamera();assistedWifi=false;savePrefs();if(!isPrivateIp(String(ip)))return {error:'Introduce una IP privada válida de la cámara'};nextWifiAttempt=0;return connectWifi(String(ip));});ipcMain.handle('camera-config',(_e,config)=>{if(typeof config.autoConnect==='boolean'){autoConnect=config.autoConnect;if(autoConnect)assistedWifi=false;}if(['auto','usb','wifi'].includes(config.mode)&&desiredMode!==config.mode){desiredMode=config.mode;if(cameraProc&&((desiredMode==='wifi'&&cameraMode==='USB')||(desiredMode==='usb'&&cameraMode==='Wi-Fi')))disconnectCamera();nextUsbAttempt=0;lastWifiScan=0;nextWifiAttempt=0;setTimeout(automaticConnection,500);}if(typeof config.wifiIp==='string'&&config.wifiIp.length<32)wifiIp=config.wifiIp.trim();savePrefs();broadcast();if(autoConnect)setTimeout(automaticConnection,650);return view();});ipcMain.handle('camera-search',async()=>{const ip=await discoverWifi();if(ip&&!cameraProc){nextWifiAttempt=0;connectWifi(ip);}else if(!ip&&wifiCandidates.length===0)cameraStatus('No se recibió anuncio Canon por SSDP ni mDNS; confirma la red o introduce la dirección manual.');return view();});ipcMain.handle('camera-disconnect',()=>{assistedWifi=false;autoConnect=false;savePrefs();disconnectCamera();broadcast();return view();});ipcMain.handle('select-folder',async()=>{const r=await dialog.showOpenDialog(main,{properties:['openDirectory','createDirectory'],defaultPath:folder});if(!r.canceled&&r.filePaths[0]){folder=r.filePaths[0];sizes.clear();list=[];position=-1;scan();}return view();});ipcMain.handle('project',(_e,id)=>{openProject(id);return view();});ipcMain.handle('close-project',()=>{if(projection&&!projection.isDestroyed())projection.close();return view();});ipcMain.handle('navigate',(_e,step)=>{move(step);return view();});ipcMain.handle('latest',()=>{position=list.length-1;resetZoom();broadcast();return view();});ipcMain.handle('toggle-auto',(_e,enabled)=>{auto=Boolean(enabled);if(auto){position=list.length-1;resetZoom();}broadcast();return view();});ipcMain.handle('photo',(_e,id)=>{const item=list.find(x=>x.file===id);if(!item)return null;return 'demiphoto://asset/'+Buffer.from(item.file).toString('base64url');});globalShortcut.register('Alt+Left',()=>move(-1));globalShortcut.register('Alt+Right',()=>move(1));globalShortcut.register('Alt+Home',()=>{position=list.length-1;resetZoom();broadcast();});observer=setInterval(scan,850);scan();autoTimer=setInterval(automaticConnection,12000);setTimeout(automaticConnection,1800);screen.on('display-added',broadcast);screen.on('display-removed',broadcast);});
 app.on('before-quit',()=>{if(cameraProc)cameraProc.kill();if(observer)clearInterval(observer);if(autoTimer)clearInterval(autoTimer);globalShortcut.unregisterAll();});app.on('window-all-closed',()=>app.quit());
