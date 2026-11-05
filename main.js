@@ -7,7 +7,9 @@ protocol.registerSchemesAsPrivileged([{scheme:'demiphoto',privileges:{standard:t
 const {spawn,execFile}=require('node:child_process');const {randomUUID}=require('node:crypto');const {Bonjour}=require('bonjour-service');
 const dgram=require('node:dgram');const fs=require('node:fs');const path=require('node:path');const os=require('node:os');const {Notification}=require('electron');
 // Existing users already have camera-settings.json under the former application name.
-app.setPath('userData',path.join(app.getPath('appData'),'Demi Tether Studio'));
+const legacyUserData=path.join(app.getPath('appData'),'Demi Tether Studio');
+fs.mkdirSync(legacyUserData,{recursive:true});
+app.setPath('userData',legacyUserData);
 let main=null,projection=null,folder=path.join(app.getPath('pictures'),'Demi Tether Studio');
 let list=[],position=-1,auto=true,displayId=null,observer=null;const sizes=new Map();
 let cameraProc=null,camera='Canon no conectada',cameraMode='USB',connected=false,autoConnect=true,wifiIp='',scanBusy=false,lastAlert='',lastWifiScan=0,nextUsbAttempt=0,desiredMode='auto',autoTimer=null,nextWifiAttempt=0,pairGuid=randomUUID(),pairingAttempt=false,assistedWifi=false,assistedReceived=0,wifiCandidates=[],fastJpegMode=true,preferredCameraService='';
