@@ -111,3 +111,13 @@ https://cam.start.canon/en/S003/manual/html/UG-00_Before_0060.html ;
 https://gdlp01.c-wss.com/gds/7/0300016207/21/EOS_Utility_3.12_Manual_Win_EN.pdf
 
 Objetivo final: eliminar EOS Utility cuando se valide el emparejamiento nativo en la 6D Mark II.
+
+
+## v0.7.4 — modo Wi-Fi asistido para trabajar sin cable
+Este modo se diseñó para la Canon EOS 6D Mark II, mientras se investiga el emparejamiento nativo. El Wi-Fi y la transferencia los gestiona el programa oficial Canon EOS Utility 3; Demi Tether Studio recibe sus JPEG mediante la carpeta de destino y los presenta en la vista principal y en el televisor. **No es comunicación PTP/IP directa de Demi con la cámara**.
+
+- Instalar y emparejar [EOS Utility 3 oficial](https://www.usa.canon.com/support/p/eos-6d-mark-ii). En Canon: Control remoto (EOS Utility) → Registrar dispositivo para conexión. PC y cámara deben utilizar la red correcta.
+- En EOS Utility configurar *Remote Shooting / Disparo remoto* → Preferencias → Carpeta de destino a una carpeta conocida, preferiblemente sin subcarpetas adicionales. Elegir descarga JPG o disparar RAW+JPG para visualización inmediata; guardar RAW originales en tarjeta si se desea.
+- En Demi pulsar **Usar fotos recibidas por Wi-Fi**, seleccionar la misma carpeta, y proyectar la última fotografía en monitor secundario. El programa desactiva autoconexión directa USB/PTP/IP para evitar competir con EOS Utility. Conserva la carpeta entre reinicios.
+- El botón **Finalizar modo asistido** desactiva este modo; no modifica las fotos ni desinstala EOS Utility. Esta modalidad puede mostrar imágenes ya existentes en la carpeta.
+- Para diagnosticar el emparejamiento nativo, el botón **Abrir diagnóstico Wi-Fi** sigue disponible. Pruebas físicas con Canon pendientes.
