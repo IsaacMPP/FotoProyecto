@@ -10,7 +10,7 @@ function bridgePath(){return app.isPackaged?path.join(process.resourcesPath,'cam
 function disconnectCamera(){const p=cameraProc;cameraProc=null;if(p){p.kill();}cameraStatus('Canon desconectada');}
 function connectCamera(){if(cameraProc)return view();const exe=bridgePath();if(!fs.existsSync(exe)){cameraStatus('Falta el conector Canon. No se compiló el puente EDSDK.');return view();}
 let partial='';cameraStatus('Conectando Canon por USB...');try{const p=spawn(exe,[folder],{windowsHide:true,stdio:['ignore','pipe','pipe']});cameraProc=p;
-p.stdout.on('data',chunk=>{partial+=chunk.toString();const lines=partial.split(/\\r?\\n/);partial=lines.pop();for(const line of lines){try{const e=JSON.parse(line);if(e.type==='status')cameraStatus(e.message);if(e.type==='photo'){scan();setTimeout(scan,550);}if(e.type==='error')cameraStatus('Canon: '+e.message);}catch{}}});
+p.stdout.on('data',chunk=>{partial+=chunk.toString();const lines=partial.split(/\r?\n/);partial=lines.pop();for(const line of lines){try{const e=JSON.parse(line);if(e.type==='status')cameraStatus(e.message);if(e.type==='photo'){scan();setTimeout(scan,550);}if(e.type==='error')cameraStatus('Canon: '+e.message);}catch{}}});
 let errors='';p.stderr.on('data',d=>{errors+=(d.toString()).slice(-3000);});p.on('error',e=>{if(cameraProc===p)cameraProc=null;cameraStatus('No se pudo iniciar conector: '+e.message);});p.on('exit',code=>{if(cameraProc===p){cameraProc=null;cameraStatus('Canon desconectada (código '+code+'). '+errors.slice(-250));}});}catch(e){cameraProc=null;cameraStatus('Error conectando cámara: '+e.message);}return view();}
 
 const supported=/\.(jpe?g|png|webp)$/i;
