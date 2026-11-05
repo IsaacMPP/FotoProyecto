@@ -60,7 +60,7 @@ internal static class Program
             if(result != EdsError.OK) throw new Exception("No se pudo abrir sesión Wi-Fi: "+result);
             Emit("status","PTP/IP: sesión aceptada; activando recepción de fotos...");
             camera.ObjectAdded+=(_,e)=> Items.Enqueue(e.ObjectHandle);
-            camera.StartEventPolling(TimeSpan.FromMilliseconds(250));
+            camera.StartEventPolling(TimeSpan.FromMilliseconds(120));
             try
             {
                 var save=await camera.SetSaveToAsync(EdsSaveTo.Both,cts.Token);
@@ -85,21 +85,32 @@ internal static class Program
                             if(err==EdsError.OK && IsJpeg(thumb))
                             {
                                 string jpg=Path.Combine(output,Path.GetFileNameWithoutExtension(unique)+".jpg");
-                                await File.WriteAllBytesAsync(jpg,thumb,cts.Token);
+                                string tmpJpg=jpg+".part";
+                                await File.WriteAllBytesAsync(tmpJpg,thumb,cts.Token);
+                                File.Move(tmpJpg,jpg,true);
                                 Emit("photo",jpg);
                             }
                         }
                         string file=Path.Combine(output,unique);
-                        await using(var stream=File.Create(file))
+                        string partial=file+".part";
+                        try
                         {
-                            var err=await camera.DownloadAsync(handle,stream,cts.Token);
-                            if(err!=EdsError.OK)throw new Exception("Descarga: "+err);
+                            var downloadClock=Stopwatch.StartNew();
+                            await using(var stream=new FileStream(partial,FileMode.Create,FileAccess.Write,FileShare.None,1024*1024,FileOptions.SequentialScan))
+                            {
+                                var err=await camera.DownloadAsync(handle,stream,cts.Token);
+                                if(err!=EdsError.OK)throw new Exception("Descarga: "+err);
+                            }
+                            File.Move(partial,file,true); // Complete original, full resolution; never show half-written files.
+                            downloadClock.Stop();
+                            Emit("status","Foto original "+Path.GetFileName(file)+" descargada en "+downloadClock.Elapsed.TotalSeconds.ToString("F2",System.Globalization.CultureInfo.InvariantCulture)+" s");
+                            Emit("photo",file); // Tell gallery immediately, before housekeeping PTP command.
+                            if((ext==".CR2"||ext==".CR3")&&!File.Exists(Path.Combine(output,Path.GetFileNameWithoutExtension(unique)+".jpg")))
+                                ExtractRawJpeg(file,Path.Combine(output,Path.GetFileNameWithoutExtension(unique)+".jpg"));
+                            var complete=await camera.TransferCompleteAsync(handle,cts.Token);
+                            if(complete!=EdsError.OK)Emit("error","TransferComplete: "+complete);
                         }
-                        if((ext==".CR2"||ext==".CR3")&&!File.Exists(Path.Combine(output,Path.GetFileNameWithoutExtension(unique)+".jpg")))
-                            ExtractRawJpeg(file,Path.Combine(output,Path.GetFileNameWithoutExtension(unique)+".jpg"));
-                        var complete=await camera.TransferCompleteAsync(handle,cts.Token);
-                        if(complete!=EdsError.OK)Emit("error","TransferComplete: "+complete);
-                        Emit("photo",file);
+                        finally {try{if(File.Exists(partial))File.Delete(partial);}catch{}}
                     }
                     catch(Exception e){Emit("error","Fotografía Wi-Fi: "+e.Message);}
                 }
