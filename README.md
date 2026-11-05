@@ -148,3 +148,15 @@ Para la prueba: usar modo **Solo Wi-Fi**, desactivar temporalmente la reconexió
 7. Si falla, pulsar **Abrir diagnóstico Wi-Fi**. Se registran por separado: apertura del TCP de comandos, envío InitCommandRequest, tipo de respuesta, apertura del canal de eventos, envío InitEventRequest y respuesta. El registro no imprime el GUID.
 
 **Limitación:** la respuesta TCP rechazada puede aparecer si EOS Utility sigue usando la cámara, si se reutiliza un perfil anterior o si el firmware de la 6D II requiere otro paso de asociación. El código y la compilación por sí solos no prueban compatibilidad Wi-Fi completa; solo una sesión física aceptada y una fotografía recibida pueden confirmarla.
+
+
+## v0.8.1 — Corregir ambigüedad entre SSDP y mDNS
+En la prueba aportada por el usuario (2026-11-05 06:48 UTC), mDNS devolvió `192.168.1.60` y SSDP `192.168.1.47`. La versión anterior seleccionaba **siempre SSDP** primero y conectaba a `.47`, donde se rechazó el socket TCP. **No se puede afirmar cuál de ambas IP representa a la EOS 6D Mark II sin verificar el dispositivo**.
+
+- La búsqueda ahora recoge todas las direcciones anunciadas con origen y nombre del servicio; las muestra bajo **Dispositivos detectados**.
+- Si hay direcciones contradictorias, Demi no intentará una conexión automática a una IP arbitraria: exige seleccionar la dirección y pulsar **Conectar a dirección elegida**. El registro incluirá la dirección seleccionada y el método de detección.
+- No se abre ningún TCP previo solo para comprobar el puerto. La selección conecta mediante PTP/IP; si la cámara la rechaza, no se afirma que el emparejamiento se haya completado.
+- Si hay una sola dirección anunciada, sigue disponible la prueba automática. Con la sesión oficial de Canon activa, cierra EOS Utility antes de probar el modo nativo de Demi.
+- En una asociación nueva, el botón **Emparejar Demi con Canon** prepara el GUID y realiza descubrimiento. Si existen varias IP, debes seleccionar una antes de continuar.
+
+**Prueba sugerida:** vuelve a iniciar una nueva asociación en la Canon, pulsa el botón de emparejamiento, examina nombre/origen de las dos IP y elige la correspondiente a la Canon. Si no hay certeza, puedes probarlas de una en una con la cámara esperando y registrar las fases PTP/IP. Si sigue apareciendo `SocketException: connection refused`, necesitamos el registro de la IP concreta para distinguir selección incorrecta de problema del protocolo de asociación.
