@@ -69,3 +69,31 @@ body{display:flex;flex-direction:column}
 .wifi-assist strong{font-size:12px;color:#d5f6ff}.wifi-assist p{margin:0;color:#bad1df;font-size:11px;line-height:1.4}.wifi-assist .btn{width:100%;font-size:11px}.wifi-assist #wifi-assist-status{color:#83b7c6;overflow-wrap:anywhere}
 
 .wifi-speed-setting{margin:9px 0;padding:10px;border:1px solid #2b6880;border-radius:10px;background:#102a37}.wifi-speed-setting .switch-line{margin:0}.wifi-speed-setting strong{color:#bbf1ff}.wifi-speed-setting p{margin:6px 0 0;color:#afc4ce;font-size:11px;line-height:1.45}
+
+
+/* v0.8.6: uncluttered camera controls; complex pairing tools stay available on demand. */
+.camera-panel .panel-header{justify-content:flex-start;flex-wrap:wrap}
+.camera-panel .panel-header h2{flex:1}
+.camera-live-status{font-size:10px;color:#b6c5d5;white-space:nowrap}
+.camera-live-status.online{color:#63dfad}
+.camera-panel .status{margin-bottom:12px;overflow-wrap:anywhere;max-height:80px;overflow:auto}
+.camera-primary-actions{display:grid;grid-template-columns:1fr auto;gap:7px;margin-top:10px}
+.camera-primary-actions .btn{padding:10px 8px;font-size:11px}
+.camera-primary-actions #disconnect{padding-inline:10px}
+.camera-settings{margin-top:14px;border-top:1px solid #314152;padding-top:11px}
+.camera-settings>summary{cursor:pointer;list-style:none;color:#9eb8cd;font-size:12px;font-weight:600;padding:6px;border-radius:7px;user-select:none}
+.camera-settings>summary:hover{color:#ebf6ff;background:#26364a}
+.camera-settings>summary::before{content:'▸';margin-right:7px;color:#61bfe9}
+.camera-settings[open]>summary::before{content:'▾'}
+.settings-content{display:flex;flex-direction:column;gap:8px;padding-top:12px}
+.settings-content>.btn{width:100%;padding:9px 10px;font-size:11px}
+.settings-content .switch-line{margin:0 0 4px}
+.settings-content .field-label{margin:5px 0 -3px}
+.settings-divider{border-top:1px solid #304051;margin-top:9px;padding-top:12px;color:#7e9db5;font-size:10px;font-weight:700;letter-spacing:.3px}
+.legacy-options{border:1px solid #314152;border-radius:9px;padding:9px;margin-top:3px}
+.legacy-options summary{cursor:pointer;color:#9ab7cb;font-size:11px}
+.legacy-content{display:grid;gap:8px;padding-top:9px}
+.legacy-content p{margin:0;color:#96afc3;font-size:11px;line-height:1.4}
+.legacy-content .btn{padding:8px;font-size:11px}
+.sidebar{gap:11px}
+.sidebar .panel{padding:13px}
