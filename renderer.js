@@ -36,4 +36,4 @@ $('wifi-diagnostic').onclick=()=>window.demi.openWifiDiagnostic();
 $('wifi-assist').onclick=()=>window.demi.assistedWifi();
 $('wifi-assist-off').onclick=()=>window.demi.disableAssistedWifi();
 
-$('wifi-pair').onclick=async()=>{const button=$('wifi-pair');button.disabled=true;try{await window.demi.pairNewCamera();}finally{button.disabled=false;}};
+$('wifi-pair').onclick=async()=>{const button=$('wifi-pair');button.disabled=true;try{const result=await window.demi.pairNewCamera();if(result?.error){toast.textContent=result.error;toast.className='camera-toast visible warning';}}finally{button.disabled=false;}};
