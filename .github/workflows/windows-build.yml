@@ -25,12 +25,37 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $uri = 'https://downloads.sourceforge.net/project/exiftool/exiftool-13.60_64.zip'
           $zip = Join-Path $env:RUNNER_TEMP 'exiftool.zip'
-          Invoke-WebRequest -Uri $uri -OutFile $zip -MaximumRedirection 10 -TimeoutSec 120
           $expected = '548b1f4e0b713cd2a26824b34080c35db4e2d2edd166468eb38b1d55ada90c2e'
-          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($hash -ne $expected) { throw "ExifTool SHA256 invalido: $hash" }
+          $sources = @(
+            'https://download.sourceforge.net/project/exiftool/exiftool-13.60_64.zip?use_mirror=netix',
+            'https://netix.dl.sourceforge.net/project/exiftool/exiftool-13.60_64.zip',
+            'https://pilotfiber.dl.sourceforge.net/project/exiftool/exiftool-13.60_64.zip'
+          )
+          $verified = $false
+          foreach ($uri in $sources) {
+            try {
+              Invoke-WebRequest -Uri $uri -OutFile $zip -MaximumRedirection 10 -TimeoutSec 90
+              $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+              $size = (Get-Item $zip).Length
+              Write-Host "Fuente: $uri | Bytes: $size | SHA256: $hash"
+              if ($hash -eq $expected) { $verified = $true; break }
+            } catch { Write-Warning ("Fuente fallida: " + $_.Exception.Message) }
+          }
+          if (-not $verified) {
+            Write-Host 'Probando paquete Chocolatey oficial, que incluye el ZIP de ExifTool...'
+            $pkg = Join-Path $env:RUNNER_TEMP 'exiftool.nupkg'
+            $pkgzip = Join-Path $env:RUNNER_TEMP 'exiftool-package.zip'
+            $pkgdir = Join-Path $env:RUNNER_TEMP 'exiftool-package'
+            Invoke-WebRequest 'https://community.chocolatey.org/api/v2/package/exiftool/13.60.0' -OutFile $pkg -MaximumRedirection 10 -TimeoutSec 120
+            Copy-Item $pkg $pkgzip
+            Expand-Archive -LiteralPath $pkgzip -DestinationPath $pkgdir -Force
+            $nested = Get-ChildItem $pkgdir -Filter 'exiftool-13.60_64.zip' -File -Recurse | Select-Object -First 1
+            if (-not $nested) { throw 'El paquete Chocolatey no contiene el ZIP Windows x64 esperado.' }
+            Copy-Item $nested.FullName $zip -Force
+            $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($hash -ne $expected) { throw "ZIP invalido: $hash" }
+          }
           $extract = Join-Path $env:RUNNER_TEMP 'exiftool-extract'
           Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
           $bin = Get-ChildItem $extract -Filter 'exiftool(-k).exe' -File -Recurse | Select-Object -First 1
