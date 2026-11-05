@@ -144,3 +144,14 @@ replacement=r'''    private ushort _operationCode;
 s=s[:start]+replacement+s[end:]
 p.write_text(s,encoding="utf-8")
 print("PTP/IP operation framing corrected; PTP command and data responses reconstructed")
+
+# Photo transfers need a receive buffer larger than the SDK's 512 KiB default.
+# Only CanonGetObject uses a larger buffer, so regular event/property polling stays cheap.
+session=Path("fc-sdk/src/FC.SDK/Protocol/PtpSession.cs")
+ps=session.read_text(encoding="utf-8")
+marker="var recvBuf = Pool.Rent(ReceiveBufferSize);"
+if ps.count(marker)!=1:
+    raise SystemExit("FC.SDK GetObject buffer marker changed")
+ps=ps.replace(marker,"var recvBuf = Pool.Rent(opCode == PtpOperationCode.CanonGetObject ? 96 * 1024 * 1024 : ReceiveBufferSize);")
+session.write_text(ps,encoding="utf-8")
+print("96 MiB receive buffer limited to CanonGetObject photo transfers")
