@@ -6,7 +6,7 @@ function changeZoom(value){window.demi.setZoom(Math.min(6,Math.max(1,value)));}
 function changePan(x,y){window.demi.setPan(x,y);}
 const update=async s=>{
  const selected=s.photos[s.position];$('folder').textContent=s.folder;$('counter').textContent=s.photos.length+' fotos · '+(s.position+1)+' / '+s.photos.length;$('auto').checked=s.auto;$('camera').textContent=s.camera;
- const connected=!!s.cameraConnected;if(document.activeElement!==$('wifi-ip'))$('wifi-ip').value=s.wifiIp||'';$('auto-connect').checked=s.autoConnect!==false;$('connection-mode').value=s.desiredMode||'auto';$('connection-dot').classList.toggle('on',connected);$('connection-short').textContent=connected?'Canon USB conectada':'Cámara sin conectar';
+ const connected=!!s.cameraConnected;$('wifi-assist-status').textContent=s.assistedWifi?'Esperando fotos de EOS Utility · '+(s.assistedReceived||0)+' fotos nuevas':'Modo asistido inactivo';if(document.activeElement!==$('wifi-ip'))$('wifi-ip').value=s.wifiIp||'';$('auto-connect').checked=s.autoConnect!==false;$('connection-mode').value=s.desiredMode||'auto';$('connection-dot').classList.toggle('on',connected);$('connection-short').textContent=connected?'Canon conectada por '+s.cameraMode:(s.assistedWifi?'Wi-Fi asistido · esperando fotos':'Cámara sin conectar');
  currentZoom=s.zoom||1;currentPanX=s.panX||0;currentPanY=s.panY||0;applyTransform();
  $('file').textContent=selected?.name||'';
  const previous=$('displays').value;$('displays').replaceChildren(...s.displays.map(d=>{const el=document.createElement('option');el.value=String(d.id);el.textContent=d.name+' · '+d.bounds.width+'×'+d.bounds.height;return el;}));if(s.displays.some(d=>String(d.id)===previous))$('displays').value=previous;else if(s.displays[1])$('displays').value=String(s.displays[1].id);
@@ -32,3 +32,6 @@ $('wifi-search').onclick=()=>window.demi.searchWifi();
 $('wifi-connect').onclick=async()=>{const ip=$('wifi-ip').value.trim();const result=await window.demi.connectWifi(ip);if(result?.error){toast.textContent=result.error;toast.className='camera-toast visible warning';}};
 
 $('wifi-diagnostic').onclick=()=>window.demi.openWifiDiagnostic();
+
+$('wifi-assist').onclick=()=>window.demi.assistedWifi();
+$('wifi-assist-off').onclick=()=>window.demi.disableAssistedWifi();
