@@ -46,7 +46,7 @@ internal static class Program
                     try{DownloadPreview(item,Path.Combine(output,filename),taken.dateTime);}
                     catch(Exception e){Emit("error","Miniatura RAW de cámara no disponible: "+e.Message);}
                     string rawPath=Download(item,"",true,taken.dateTime);
-                    if(!File.Exists(Path.Combine(output,filename)) && !ExtractRawPreview(rawPath,Path.Combine(output,filename),taken.dateTime))
+                    if(!IsJpeg(Path.Combine(output,filename)) && !ExtractRawPreview(rawPath,Path.Combine(output,filename),taken.dateTime))
                         Emit("error","No se pudo generar JPEG de "+taken.fileName+"; RAW guardado sin cambios.");
                 }
                 else Download(item,"",true,taken.dateTime);
@@ -199,8 +199,9 @@ internal static class Program
                     string stem=Path.GetFileNameWithoutExtension(photo.name);
                     // Identificador estable que conserva orden y evita colisiones entre carpetas.
                     string target=Path.Combine(output,"Canon_"+photo.date+"_"+stem+".jpg");
-                    if(!File.Exists(target))
+                    if(!IsJpeg(target))
                     {
+                        if(File.Exists(target))try{File.Delete(target);}catch{}
                         if(!photo.raw && newestFull.Contains(photo))
                         {
                             // Para las últimas JPEG descargamos resolución completa.
