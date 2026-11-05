@@ -87,7 +87,7 @@ jobs:
       - name: Publicar ejecutables
         uses: actions/upload-artifact@v4
         with:
-          name: Demi-Tether-Studio-Windows
+          name: Demi-Visor-Studio-Windows
           path: |
             dist/*.exe
             dist/*.blockmap
