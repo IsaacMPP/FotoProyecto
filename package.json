@@ -1,6 +1,6 @@
 {
   "name": "demi-tether-studio",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "private": true,
   "description": "Demi Tether Studio para Windows con puente Canon EDSDK",
   "main": "main.js",
