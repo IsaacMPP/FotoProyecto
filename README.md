@@ -91,3 +91,23 @@ Fuentes: https://sg.canon/en/support/8203590200 ; https://cascable.se/help/troub
 - Si no se detecta, el mensaje indica que no hubo anuncios y especifica los puertos de la red. No se simula que se haya autorizado un emparejamiento: solo se considera conectada después de una sesión de cámara abierta satisfactoriamente.
 - Manual Canon: https://gdlp01.c-wss.com/gds/2/0300027622/01/EOS_6D_Mark_II_Wi-Fi_Instruction_Manual_EN.pdf ; implementación documentada de descubrimiento SSDP: https://julianschroden.com/post/2023-05-10-pairing-and-initializing-a-ptp-ip-connection-with-a-canon-eos-camera/
 - **No se ha comprobado físicamente con esta 6D Mark II**. Si persiste Err 11, necesitamos observar el anuncio y el handshake para determinar qué etapa falta; la compilación únicamente confirma que el programa se genera.
+
+
+## v0.7.3 — Diagnóstico de emparejamiento nativo y salida Wi-Fi verificada por Canon
+
+- La aplicación ya distingue las fases de detección PTP/IP, envío de identidad y autorización, sesión aceptada y recepción de imágenes. Guarda los eventos en un archivo local sin incluir fotografías. Puedes abrirlo desde **Abrir diagnóstico Wi-Fi**.
+- Antes, un error del puente Wi-Fi se perdía al terminar el proceso y se reemplazaba por "desconectado"; ahora se conserva para identificar la fase real.
+- Esta versión **no garantiza** que el Wi-Fi nativo funcione en EOS 6D Mark II sin implementar pasos adicionales específicos. Err 11 significa que la cámara no encontró el receptor esperado, y la compilación no resuelve eso por sí misma.
+
+### Alternativa funcional inmediata sin cable entre cámara y PC
+1. Usa EOS Utility 3 oficial de Canon en Windows para emparejar la EOS 6D Mark II por Wi-Fi (conexión EOS Utility, no smartphone). En la Canon, selecciona registrar un equipo nuevo y en Windows conecta a la SSID Canon indicada o usa la misma red.
+2. Dentro de EOS Utility, abre **Configuración de cámara/Disparo remoto** y configura **Preferencias → Carpeta de destino** a la misma carpeta seleccionada en Demi Tether Studio. Desactiva la creación de subcarpetas, si está activada; el visor actual monitoriza la carpeta elegida, no carpetas anidadas.
+3. Si disparas RAW+JPEG, marca la opción **transferir solamente JPEG al ordenador**; así el visor puede mostrar el JPEG rápidamente mientras el CR2 se conserva en la tarjeta.
+4. Configura guardar las tomas también en la tarjeta. Usa el disparador físico de Canon; EOS Utility transfiere el JPEG a Windows, Demi lo detecta y lo presenta en el televisor.
+5. No conectes simultáneamente el puente USB/PTP de Demi a la cámara: dos programas de control pueden competir por la sesión. Si vas a usar el modo oficial temporal, desactiva **Conectar y reconectar automáticamente** en Demi, y usa solamente **Elegir carpeta** para visualizar.
+
+Fuentes oficiales: https://www.usa.canon.com/support/p/eos-6d-mark-ii ;
+https://cam.start.canon/en/S003/manual/html/UG-00_Before_0060.html ;
+https://gdlp01.c-wss.com/gds/7/0300016207/21/EOS_Utility_3.12_Manual_Win_EN.pdf
+
+Objetivo final: eliminar EOS Utility cuando se valide el emparejamiento nativo en la 6D Mark II.
