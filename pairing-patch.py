@@ -35,10 +35,8 @@ for needle, statement in stages:
     if s.count(needle) != 1:
         raise SystemExit("FC.SDK stage tracing marker changed: " + needle)
     if needle.startswith("if ("):
-        s = s.replace(needle, statement + "\
-        " + needle)
+        s = s.replace(needle, statement + chr(10) + "        " + needle)
     else:
-        s = s.replace(needle, needle + "\
-        " + statement)
+        s = s.replace(needle, needle + chr(10) + "        " + statement)
 p.write_text(s,encoding="utf-8")
 print("PTP/IP pairing now uses persistent GUID passed by Demi Tether Studio")
