@@ -121,3 +121,14 @@ Este modo se diseñó para la Canon EOS 6D Mark II, mientras se investiga el emp
 - En Demi pulsar **Usar fotos recibidas por Wi-Fi**, seleccionar la misma carpeta, y proyectar la última fotografía en monitor secundario. El programa desactiva autoconexión directa USB/PTP/IP para evitar competir con EOS Utility. Conserva la carpeta entre reinicios.
 - El botón **Finalizar modo asistido** desactiva este modo; no modifica las fotos ni desinstala EOS Utility. Esta modalidad puede mostrar imágenes ya existentes en la carpeta.
 - Para diagnosticar el emparejamiento nativo, el botón **Abrir diagnóstico Wi-Fi** sigue disponible. Pruebas físicas con Canon pendientes.
+
+
+## v0.7.5 — corrección dirigida a los rechazos TCP de la Canon
+El diagnóstico físico EOS 6D Mark II de 2026-11-05 confirma el anuncio SSDP de `192.168.1.59` pero registra `connection refused`, `connection reset by peer` y timeout antes de que se complete el handshake PTP/IP. El problema no es la ausencia de IP. En versiones anteriores, `portOpen()` abría y cerraba TCP/15740 **antes** del intento real de emparejamiento (tanto con IP manual como con descubrimiento SSDP/mDNS); esto es especialmente arriesgado para equipos que solo admiten un cliente en la fase de asociación.
+
+- Se eliminó totalmente `portOpen` de la detección y la búsqueda por barrido de 254 direcciones que abría conexiones temporales a 15740.
+- La app descubre la IP por UDP SSDP/mDNS (o usa la IP manual) **sin conectarse al TCP**. El primer socket TCP abierto hacia la Canon corresponde al puente FC.SDK, que envía `InitCommandRequest` por esa misma conexión.
+- Después de un fallo Wi-Fi, la app **espera 120 segundos** antes de un nuevo intento automático en lugar de repetir el handshake cada 30 segundos. El botón Conectar Wi-Fi permite probar manualmente antes; no se requiere reconectar el USB.
+- Sigue pendiente la confirmación física: es una corrección de un problema observable en nuestro código, **no** prueba de que el protocolo Canon acepte el cliente. Las conexiones SSDP detectadas no cuentan como sesiones emparejadas.
+
+Para la prueba: usar modo **Solo Wi-Fi**, desactivar temporalmente la reconexión automática, cerrar EOS Utility si se está intentando conexión **nativa**, crear una conexión nueva en menú Canon y pulsar **Buscar cámara Wi-Fi** una sola vez mientras espera asociación. Si vuelve a Err 11, abrir el diagnóstico y copiar la nueva secuencia; no repetir decenas de intentos en rápida sucesión.
