@@ -2,6 +2,7 @@ using FC.SDK;
 using FC.SDK.Canon;
 using System.Collections.Concurrent;
 using System.Text.Json;
+using System.Diagnostics;
 
 internal static class Program
 {
@@ -10,6 +11,34 @@ internal static class Program
     { lock(Gate) Console.WriteLine(JsonSerializer.Serialize(new { type, message })); }
     private static readonly ConcurrentQueue<uint> Items = new();
     private static bool IsJpeg(byte[] bytes) => bytes.Length > 512 && bytes[0] == 255 && bytes[1] == 216;
+    private static bool ExtractRawJpeg(string rawPath,string destination)
+    {
+        var exe=Path.Combine(AppContext.BaseDirectory,"exiftool.exe");
+        if(!File.Exists(exe))return false;
+        foreach(var tag in new[]{"JpgFromRaw","PreviewImage","OtherImage","ThumbnailImage"})
+        {
+            string temp=destination+".partial";
+            try
+            {
+                using var p=new Process();
+                p.StartInfo.FileName=exe;
+                p.StartInfo.ArgumentList.Add("-b");
+                p.StartInfo.ArgumentList.Add("-"+tag);
+                p.StartInfo.ArgumentList.Add(rawPath);
+                p.StartInfo.UseShellExecute=false;
+                p.StartInfo.RedirectStandardOutput=true;
+                p.StartInfo.CreateNoWindow=true;
+                if(!p.Start())continue;
+                using(var dest=File.Create(temp))p.StandardOutput.BaseStream.CopyTo(dest);
+                if(!p.WaitForExit(15000)){p.Kill(true);continue;}
+                var bytes=File.ReadAllBytes(temp);
+                if(p.ExitCode==0&&IsJpeg(bytes)){File.Move(temp,destination,true);Emit("photo",destination);return true;}
+            }
+            catch(Exception e){Emit("error","Previsualización RAW: "+e.Message);}
+            finally{try{if(File.Exists(temp))File.Delete(temp);}catch{}}
+        }
+        return false;
+    }
     public static async Task<int> Main(string[] args)
     {
         if(args.Length < 2 || !System.Net.IPAddress.TryParse(args[0],out var parsed) ||
@@ -62,6 +91,8 @@ internal static class Program
                             var err=await camera.DownloadAsync(handle,stream,cts.Token);
                             if(err!=EdsError.OK)throw new Exception("Descarga: "+err);
                         }
+                        if((ext==".CR2"||ext==".CR3")&&!File.Exists(Path.Combine(output,Path.GetFileNameWithoutExtension(unique)+".jpg")))
+                            ExtractRawJpeg(file,Path.Combine(output,Path.GetFileNameWithoutExtension(unique)+".jpg"));
                         var complete=await camera.TransferCompleteAsync(handle,cts.Token);
                         if(complete!=EdsError.OK)Emit("error","TransferComplete: "+complete);
                         Emit("photo",file);
