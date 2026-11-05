@@ -68,3 +68,19 @@ Se recorren todas las carpetas visibles mediante EDSDK. Se cuentan JPEG y RAW CR
 **Estado de compatibilidad:** el motor PTP/IP está implementado, pero sus autores solo reportan pruebas físicas con EOS 6D original, no con la EOS 6D Mark II. Tampoco hemos podido probar la 6D Mark II físicamente en este entorno. Puede ser necesario añadir el protocolo de emparejamiento EOS específico si la Canon no autoriza la sesión. No se considera validado hasta recibir una fotografía real por Wi-Fi, aunque GitHub Actions compile exitosamente.
 
 Documentación oficial de Canon sobre conexión a computadora: https://ph.canon/en/support/8203590200
+
+
+## Emparejamiento Canon Wi-Fi v0.7.1 (Err 11)
+
+Se corrigió el fallo de diseño anterior: buscar solo TCP/15740 no equivale a descubrir/emparejar una cámara Canon. Demi Tether Studio ahora escucha anuncios DNS-SD/mDNS `_ptp._tcp.local` sobre UDP/5353 y, si no aparecen, utiliza la IP manual o un sondeo de la red local. Además, se crea y guarda un **GUID de cliente estable** en `camera-settings.json` y se reutiliza en los siguientes handshakes PTP/IP; FC.SDK, sin este cambio, creaba un GUID distinto en cada conexión.
+
+**Importante:** la detección mDNS y el GUID persistente son necesarios para muchos modelos, pero por sí solos **no prueban que el EOS 6D Mark II acepte el emparejamiento**. Puede requerirse una secuencia Canon adicional todavía no implementada. Se debe comprobar en la cámara la pantalla de autorización, luego capturar una foto real. Nunca se describe conexión efectiva solo porque responda el puerto.
+
+### Pasos de prueba
+1. En Windows, conectar a la misma Wi-Fi que la cámara (para configuración directa, a su SSID que termina `_Canon0A`).
+2. En la Canon, crear **nueva conexión a computadora (EOS Utility)** y permanecer en la pantalla «Iniciar emparejamiento».
+3. En Demi, elegir **Solo Wi-Fi** y **Buscar cámara Wi-Fi**. Autorizar el acceso a redes privadas en el firewall de Windows si aparece el aviso (mDNS UDP 5353 y PTP/IP TCP 15740).
+4. Confirmar la solicitud en la pantalla Canon si aparece. Si no aparece y da Err 11, registrar qué dice Demi; este resultado implica que falta una etapa de emparejamiento o falla mDNS. No instalar ni ejecutar EOS Utility simultáneamente.
+5. Una vez conectada, realizar tres fotos JPG de prueba y verificar galería y televisor.
+
+Fuentes: https://sg.canon/en/support/8203590200 ; https://cascable.se/help/troubleshooting/ ; https://github.com/JulianSchroden/camera_control_dart .
