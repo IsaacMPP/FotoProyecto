@@ -35,3 +35,5 @@ $('wifi-diagnostic').onclick=()=>window.demi.openWifiDiagnostic();
 
 $('wifi-assist').onclick=()=>window.demi.assistedWifi();
 $('wifi-assist-off').onclick=()=>window.demi.disableAssistedWifi();
+
+$('wifi-pair').onclick=async()=>{const button=$('wifi-pair');button.disabled=true;try{await window.demi.pairNewCamera();}finally{button.disabled=false;}};
