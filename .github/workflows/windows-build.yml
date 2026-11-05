@@ -1,0 +1,35 @@
+name: Compilar Windows
+on:
+  push:
+    branches:
+      - feature/demi-tether-windows-actions
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Instalar dependencias
+        run: npm ci --no-audit --no-fund
+      - name: Validar JavaScript
+        run: npm run check
+      - name: Crear instalador y portable
+        run: npm run dist:win
+      - name: Publicar ejecutables
+        uses: actions/upload-artifact@v4
+        with:
+          name: Demi-Tether-Studio-Windows
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+          if-no-files-found: error
+          retention-days: 30

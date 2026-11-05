@@ -1,0 +1,53 @@
+{
+  "name": "demi-tether-studio",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Visor fotografico para estudio en Windows",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check main.js && node --check preload.js && node --check renderer.js && node --check projector.js",
+    "dist:win": "electron-builder --win nsis portable --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "37.10.3",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "mx.demistudios.tether",
+    "productName": "Demi Tether Studio",
+    "asar": true,
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "projector.js",
+      "index.html",
+      "projector.html",
+      "style.css"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
