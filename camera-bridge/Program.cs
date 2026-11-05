@@ -10,13 +10,14 @@ internal static class Program
     private const uint ObjectAll = 0x00000200;
     private const uint TransferRequest = 0x00000208;
     private const uint SaveToProp = 0x0000000B;
-    private const uint SaveToHost = 2;
+    private const uint SaveToBoth = 3;
+    private const int GalleryLimit = 30;
     private static IntPtr camera, cameraList;
     private static bool initialized, session;
     private static string output = "";
     private static EDSDK.ObjectHandler? handler;
     private static readonly object consoleLock = new();
-    private static readonly List<string> received = new();
+    private static readonly List<(string name, uint date, IntPtr item)> gallery = new();
     private static int running = 1;
 
     private static void Emit(string type, string message)
@@ -42,10 +43,10 @@ internal static class Program
         finally { EDSDK.EdsRelease(item); }
         return 0;
     }
-    private static void Download(IntPtr item)
+    private static void Download(IntPtr item,string prefix="")
     {
         Check(EDSDK.EdsGetDirectoryItemInfo(item, out var info), "EdsGetDirectoryItemInfo");
-        var original = Path.GetFileName(info.fileName);
+        var original = prefix+Path.GetFileName(info.fileName);
         if(string.IsNullOrWhiteSpace(original)) original = "Canon_" + DateTime.Now.ToString("yyyyMMdd_HHmmssfff") + ".jpg";
         string target = Path.Combine(output, original);
         if(File.Exists(target))
@@ -62,6 +63,63 @@ internal static class Program
             Emit("photo",target);
         }
         finally { EDSDK.EdsRelease(stream); }
+    }
+    private static void CollectGallery(IntPtr parent, int depth)
+    {
+        if(depth > 5) return;
+        uint err=EDSDK.EdsGetChildCount(parent,out var count);
+        if(err!=0) {Emit("error","No se pudo leer carpeta de cámara (0x"+err.ToString("X8")+")");return;}
+        for(int i=0;i<count;i++)
+        {
+            IntPtr item=IntPtr.Zero;
+            try
+            {
+                Check(EDSDK.EdsGetChildAtIndex(parent,i,out item),"EdsGetChildAtIndex(galería)");
+                if(EDSDK.EdsGetDirectoryItemInfo(item,out var info)!=0) {
+                    // Camera volumes do not expose directory item info.
+                    CollectGallery(item,depth+1);
+                }
+                else if(info.isFolder)
+                    CollectGallery(item,depth+1);
+                else if(info.fileName!=null &&
+                        (info.fileName.EndsWith(".jpg",StringComparison.OrdinalIgnoreCase) ||
+                         info.fileName.EndsWith(".jpeg",StringComparison.OrdinalIgnoreCase)))
+                {
+                    gallery.Add((info.fileName,info.dateTime,item));
+                    item=IntPtr.Zero;
+                }
+            }
+            catch(Exception ex) {Emit("error","Explorando tarjeta: "+ex.Message);}
+            finally {if(item!=IntPtr.Zero)EDSDK.EdsRelease(item);}
+        }
+    }
+    private static void ImportGallery()
+    {
+        try
+        {
+            gallery.Clear();
+            CollectGallery(camera,0);
+            int total=gallery.Count;
+            Emit("status",$"Canon conectada. Galería detectada: {total} fotos JPG. Importando últimas {Math.Min(total,GalleryLimit)}...");
+            var ordered=gallery.OrderBy(p=>p.date).ThenBy(p=>p.name,StringComparer.OrdinalIgnoreCase).ToList();
+            var latest=ordered.TakeLast(GalleryLimit).ToList();
+            int importedCount=0;
+            foreach(var photo in latest)
+            {
+                try
+                {
+                    string target=Path.Combine(output,"Canon_"+photo.name);
+                    if(!File.Exists(target)) { Download(photo.item,"Canon_"); importedCount++; }
+                }
+                catch(Exception ex) {Emit("error","Galería "+photo.name+": "+ex.Message);}
+                finally { EDSDK.EdsRelease(photo.item);gallery.Remove(photo); }
+                EDSDK.EdsGetEvent();
+            }
+            foreach(var photo in gallery) EDSDK.EdsRelease(photo.item);
+            gallery.Clear();
+            Emit("status",$"Canon conectada por USB. {total} JPEG encontrados; {importedCount} importados. Nuevos disparos activos.");
+        }
+        catch(Exception ex) {Emit("error","No se pudo listar galería: "+ex.Message);}
     }
     public static int Main(string[] args)
     {
@@ -80,11 +138,11 @@ internal static class Program
             Check(EDSDK.EdsOpenSession(camera),"EdsOpenSession");session=true;
             handler = OnObject;
             Check(EDSDK.EdsSetObjectEventHandler(camera,ObjectAll,handler,IntPtr.Zero),"EdsSetObjectEventHandler");
-            uint dest=SaveToHost;
-            Check(EDSDK.EdsSetPropertyData(camera,SaveToProp,0,4,ref dest),"EdsSetPropertyData(SaveToHost)");
+            uint dest=SaveToBoth;
+            Check(EDSDK.EdsSetPropertyData(camera,SaveToProp,0,4,ref dest),"EdsSetPropertyData(SaveToBoth)");
             var capacity = new EDSDK.Capacity {numberOfFreeClusters=0x7FFFFFFF,bytesPerSector=4096,reset=1};
             Check(EDSDK.EdsSetCapacity(camera,capacity),"EdsSetCapacity");
-            Emit("status","Canon conectada por USB. Dispara desde la cámara: recepción automática activa.");
+            ImportGallery();
             while(Volatile.Read(ref running)==1)
             {
                 EDSDK.EdsGetEvent();
