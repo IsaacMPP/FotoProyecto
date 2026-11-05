@@ -12,7 +12,7 @@ function canonUtilityRunning(){
   if(process.platform!=='win32')return resolve(false);
   execFile('tasklist',['/fo','csv','/nh'],{windowsHide:true,timeout:4000,maxBuffer:1024*1024},(err,stdout)=>{
    if(err)return resolve(false);
-   resolve(stdout.split(/\\r?\\n/).some(line=>/^"(?:EOS Utility(?: 3)?|EOSUPNPSV|WFTPairing|EULauncher)[^"]*\\.exe"/i.test(line.trim())));
+   resolve(stdout.split(String.fromCharCode(10)).some(line=>{const name=line.trim().split('"')[1]?.toLowerCase()||'';return name.endsWith('.exe')&&['eos utility','eosupnpsv','wftpairing','eulauncher'].some(x=>name.startsWith(x));}));
   });
  });
 }
