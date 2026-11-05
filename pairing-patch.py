@@ -39,4 +39,4 @@ for needle, statement in stages:
     else:
         s = s.replace(needle, needle + chr(10) + "        " + statement)
 p.write_text(s,encoding="utf-8")
-print("PTP/IP pairing now uses persistent GUID passed by Demi Tether Studio")
+print("PTP/IP pairing now uses persistent GUID passed by Demi Visor Studio")
