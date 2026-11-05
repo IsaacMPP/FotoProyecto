@@ -37,7 +37,15 @@ internal static class Program
         {
             if(evt == TransferRequest)
             {
-                Download(item);
+                Check(EDSDK.EdsGetDirectoryItemInfo(item,out var taken),"EdsGetDirectoryItemInfo(captura)");
+                string ext=Path.GetExtension(taken.fileName??"").ToUpperInvariant();
+                if(ext==".CR2" || ext==".CR3")
+                {
+                    string filename="Canon_"+taken.dateTime+"_"+Path.GetFileNameWithoutExtension(taken.fileName)+".jpg";
+                    try{DownloadPreview(item,Path.Combine(output,filename),taken.dateTime);}
+                    catch(Exception e){Emit("error","Vista previa RAW: "+e.Message);}
+                }
+                Download(item,"",true,taken.dateTime);
             }
         }
         catch(Exception ex) { Emit("error", "Transferencia: " + ex.Message); try { EDSDK.EdsDownloadCancel(item); }catch{} }
