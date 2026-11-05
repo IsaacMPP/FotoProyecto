@@ -1,0 +1,95 @@
+name: Compilar Windows
+on:
+  push:
+    branches:
+      - feature/demi-tether-windows-actions
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Compilar puente Canon x64
+        run: dotnet publish camera-bridge/DemiCameraBridge.csproj -c Release -r win-x64 --self-contained true -o camera-bridge/publish
+      - name: Descargar motor Wi-Fi de código abierto FC.SDK
+        shell: pwsh
+        run: |
+          git clone https://github.com/SharpAstro/FC.SDK.git fc-sdk
+          git -C fc-sdk checkout 0800943d2d4aaaa8ffc5da11b5ce57bfed9614a7
+          python pairing-patch.py
+          python ptpip-framing-patch.py
+          python wifi-startup-patch.py
+      - name: Compilar puente Wi-Fi PTP/IP
+        run: dotnet publish wifi-bridge/DemiWifiBridge.csproj -c Release -r win-x64 --self-contained true -o wifi-bridge/publish
+      - name: Incluir ExifTool para vistas previas RAW (CR2/CR3)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $zip = Join-Path $env:RUNNER_TEMP 'exiftool.zip'
+          $expected = '548b1f4e0b713cd2a26824b34080c35db4e2d2edd166468eb38b1d55ada90c2e'
+          $sources = @(
+            'https://download.sourceforge.net/project/exiftool/exiftool-13.60_64.zip?use_mirror=netix',
+            'https://netix.dl.sourceforge.net/project/exiftool/exiftool-13.60_64.zip',
+            'https://pilotfiber.dl.sourceforge.net/project/exiftool/exiftool-13.60_64.zip'
+          )
+          $verified = $false
+          foreach ($uri in $sources) {
+            try {
+              Invoke-WebRequest -Uri $uri -OutFile $zip -MaximumRedirection 10 -TimeoutSec 90
+              $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+              $size = (Get-Item $zip).Length
+              Write-Host "Fuente: $uri | Bytes: $size | SHA256: $hash"
+              if ($hash -eq $expected) { $verified = $true; break }
+            } catch { Write-Warning ("Fuente fallida: " + $_.Exception.Message) }
+          }
+          if (-not $verified) {
+            Write-Host 'Probando paquete Chocolatey oficial, que incluye el ZIP de ExifTool...'
+            $pkg = Join-Path $env:RUNNER_TEMP 'exiftool.nupkg'
+            $pkgzip = Join-Path $env:RUNNER_TEMP 'exiftool-package.zip'
+            $pkgdir = Join-Path $env:RUNNER_TEMP 'exiftool-package'
+            Invoke-WebRequest 'https://community.chocolatey.org/api/v2/package/exiftool/13.60.0' -OutFile $pkg -MaximumRedirection 10 -TimeoutSec 120
+            Copy-Item $pkg $pkgzip
+            Expand-Archive -LiteralPath $pkgzip -DestinationPath $pkgdir -Force
+            $nested = Get-ChildItem $pkgdir -Filter 'exiftool-13.60_64.zip' -File -Recurse | Select-Object -First 1
+            if (-not $nested) { throw 'El paquete Chocolatey no contiene el ZIP Windows x64 esperado.' }
+            Copy-Item $nested.FullName $zip -Force
+            $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($hash -ne $expected) { throw "ZIP invalido: $hash" }
+          }
+          $extract = Join-Path $env:RUNNER_TEMP 'exiftool-extract'
+          Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+          $bin = Get-ChildItem $extract -Filter 'exiftool(-k).exe' -File -Recurse | Select-Object -First 1
+          if (-not $bin) { throw 'No se encontro exiftool(-k).exe' }
+          Copy-Item $bin.FullName 'camera-bridge/publish/exiftool.exe'
+          $lib = Join-Path $bin.DirectoryName 'exiftool_files'
+          if (-not (Test-Path $lib)) { throw 'No se encontro carpeta exiftool_files' }
+          Copy-Item $lib 'camera-bridge/publish/exiftool_files' -Recurse -Force
+          Copy-Item 'camera-bridge/publish/exiftool.exe' 'wifi-bridge/publish/exiftool.exe'
+          Copy-Item 'camera-bridge/publish/exiftool_files' 'wifi-bridge/publish/exiftool_files' -Recurse -Force
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+      - name: Validar JavaScript
+        run: npm run check
+      - name: Crear instalador y portable
+        run: npm run dist:win
+      - name: Publicar ejecutables
+        uses: actions/upload-artifact@v4
+        with:
+          name: Demi-Visor-Studio-Windows
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+          if-no-files-found: error
+          retention-days: 30

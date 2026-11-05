@@ -1,0 +1,29 @@
+'use strict';
+const {contextBridge,ipcRenderer}=require('electron');
+contextBridge.exposeInMainWorld('demi',{
+ state:()=>ipcRenderer.invoke('state'),
+ mainFullscreen:()=>ipcRenderer.invoke('main-fullscreen'),
+ connectCamera:()=>ipcRenderer.invoke('camera-connect'),
+ connectWifi:(ip)=>ipcRenderer.invoke('camera-wifi-connect',ip),
+ connectDiscoveredWifi:(ip)=>ipcRenderer.invoke('camera-wifi-selected',ip),
+ pairNewCamera:()=>ipcRenderer.invoke('camera-pair-new'),
+ searchWifi:()=>ipcRenderer.invoke('camera-search'),
+ openWifiDiagnostic:()=>ipcRenderer.invoke('camera-open-diagnostic'),
+ assistedWifi:()=>ipcRenderer.invoke('camera-assist-wifi'),
+ disableAssistedWifi:()=>ipcRenderer.invoke('camera-assist-off'),
+ configureCamera:(config)=>ipcRenderer.invoke('camera-config',config),
+ setFastJpeg:(enabled)=>ipcRenderer.invoke('camera-fast-jpeg',enabled),
+ onCameraAlert:(callback)=>{const fn=(_e,v)=>callback(v);ipcRenderer.on('camera-alert',fn);return()=>ipcRenderer.removeListener('camera-alert',fn)},
+ disconnectCamera:()=>ipcRenderer.invoke('camera-disconnect'),
+ selectFolder:()=>ipcRenderer.invoke('select-folder'),
+ project:(id)=>ipcRenderer.invoke('project',id),
+ closeProject:()=>ipcRenderer.invoke('close-project'),
+ navigate:(step)=>ipcRenderer.invoke('navigate',step),
+ latest:()=>ipcRenderer.invoke('latest'),
+ toggleAuto:(enabled)=>ipcRenderer.invoke('toggle-auto',enabled),
+ photo:(id)=>ipcRenderer.invoke('photo',id),
+ setZoom:(value)=>ipcRenderer.invoke('zoom-set',value),
+ setPan:(x,y)=>ipcRenderer.invoke('pan-set',x,y),
+ fullscreen:()=>ipcRenderer.invoke('project-fullscreen'),
+ onState:(cb)=>{const fn=(_e,s)=>cb(s);ipcRenderer.on('state-changed',fn);return()=>ipcRenderer.removeListener('state-changed',fn)}
+});
