@@ -203,3 +203,11 @@ Pendiente: validar sesión abierta y descarga de una foto real. No se considera 
 - En modo completo (casilla desactivada), Demi seguirá descargando JPEG y RAW al PC, tardando lo correspondiente al tamaño de los RAW. Cambiar la casilla mientras está conectado requiere desconectar y volver a conectar.
 - Los objetos cuyo nombre falla en la consulta CanonGetObjectInfo se ignoran en modo rápido; su contenido no se elimina de la tarjeta. Si se dispara **solo RAW**, el modo rápido NO descarga RAW al PC ni ofrece vista JPEG completa; es imprescindible **RAW+JPEG**.
 - No se prometen tiempos exactos para cada disparo, ni se afirma que aumentar la frecuencia de polling acelere el enlace. Verificar los mensajes "Foto original ... descargada en ... s" tras realizar tres disparos separados.
+
+
+## v0.8.6 — Selección Canon automática y diseño limpio
+Demi prioriza el anuncio mDNS _ptp._tcp de ICPO-WFTEOSSystemService para conectarse automáticamente a la Canon que ya funcionó con la sesión PTP/IP. No prioriza los anuncios SSDP genéricos (como 192.168.1.47). Al establecerse con éxito una sesión Wi-Fi, guarda el nombre del servicio, activa Wi-Fi y reconexión automática. No depende de una IP fija; puede seguir cambios DHCP.
+
+La barra lateral solo muestra la cámara, estado, modo y botones Conectar/Desconectar. Opciones de cámara contiene la IP manual, búsqueda, selección, emparejamiento y herramientas EOS Utility, conservadas para casos especiales. El botón principal Conectar ahora respeta el modo Wi-Fi y busca la cámara sin intentar USB primero.
+
+Cuando la Canon registrada no esté anunciando el servicio PTP/IP correcto, se evita conectar a otro equipo solo por aparecer en SSDP. La conexión Wi-Fi y las funciones de transferencia existentes se mantienen. Verificar físicamente la reconexión al abrir Demi y reiniciar la Canon.
