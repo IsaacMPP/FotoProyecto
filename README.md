@@ -40,3 +40,11 @@ Se recorren todas las carpetas visibles mediante EDSDK. Se cuentan JPEG y RAW CR
 - El visor utiliza un protocolo interno que entrega bytes de la imagen, evitando fallos y lentitud de imágenes base64 en la comunicación Electron. Si una imagen no se puede abrir, se muestra error legible en vez de una vista negra con imagen rota.
 - Si el RAW carece de previsualización incrustada, la app informa del error y conserva el original. No se asegura revelado de CR2/CR3 ni su edición.
 - Cámara y zoom originales sin cambios. **Falta probar con Canon física los dos formatos y la carga real en el televisor.**
+
+
+## Ajuste de pantalla v0.6.2
+- Ventana de trabajo adaptativa a la resolución: la fotografía utiliza el espacio libre entre la barra superior, el zoom y la galería, sin scroll general vertical. Si la altura es reducida, solo el panel lateral puede desplazarse.
+- El visor usa **object-fit: contain** en todo momento para preservar la fotografía completa sin recortes ni deformaciones; al ampliar con zoom sí se pueden inspeccionar detalles.
+- Botón **Ampliar vista** y atajo F11 para maximizar el área de trabajo; ESC sale de ese modo. En la ventana del cliente, ESC sale de pantalla completa sin cerrar la proyección.
+- Proyección: usa todos los píxeles disponibles del JPEG original recibido, sin reducción deliberada de resolución; la calidad máxima **está limitada por la resolución del archivo origen**. Un CR2/CR3 mostrado mediante JPEG incrustado no equivale a un revelado RAW a resolución completa.
+- Mantiene la conexión Canon y controles existentes.
