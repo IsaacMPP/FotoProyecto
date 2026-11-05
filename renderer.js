@@ -1,12 +1,12 @@
 'use strict';
-const $=id=>document.getElementById(id);let prevId='',stamp=0,currentZoom=1,currentPanX=0,currentPanY=0;
+const $=id=>document.getElementById(id);let prevId='',stamp=0,currentZoom=1,currentPanX=0,currentPanY=0,editingWifi=false;
 const preview=$('preview'),stage=$('stage');
 function applyTransform(){preview.style.transform='translate('+currentPanX+'%,'+currentPanY+'%) scale('+currentZoom+')';$('zoom-level').textContent=Math.round(currentZoom*100)+'%';$('zoom-range').value=String(Math.round(currentZoom*100));}
 function changeZoom(value){window.demi.setZoom(Math.min(6,Math.max(1,value)));}
 function changePan(x,y){window.demi.setPan(x,y);}
 const update=async s=>{
  const selected=s.photos[s.position];$('folder').textContent=s.folder;$('counter').textContent=s.photos.length+' fotos · '+(s.position+1)+' / '+s.photos.length;$('auto').checked=s.auto;$('camera').textContent=s.camera;
- const connected=!!s.cameraConnected;$('connection-dot').classList.toggle('on',connected);$('connection-short').textContent=connected?'Canon USB conectada':'Cámara sin conectar';
+ const connected=!!s.cameraConnected;if(document.activeElement!==$('wifi-ip'))$('wifi-ip').value=s.wifiIp||'';$('auto-connect').checked=s.autoConnect!==false;$('connection-mode').value=s.desiredMode||'auto';$('connection-dot').classList.toggle('on',connected);$('connection-short').textContent=connected?'Canon USB conectada':'Cámara sin conectar';
  currentZoom=s.zoom||1;currentPanX=s.panX||0;currentPanY=s.panY||0;applyTransform();
  $('file').textContent=selected?.name||'';
  const previous=$('displays').value;$('displays').replaceChildren(...s.displays.map(d=>{const el=document.createElement('option');el.value=String(d.id);el.textContent=d.name+' · '+d.bounds.width+'×'+d.bounds.height;return el;}));if(s.displays.some(d=>String(d.id)===previous))$('displays').value=previous;else if(s.displays[1])$('displays').value=String(s.displays[1].id);
@@ -22,3 +22,11 @@ stage.addEventListener('pointerdown',e=>{if(currentZoom<=1)return;dragging=true;
 stage.addEventListener('pointermove',e=>{if(!dragging)return;changePan(baseX+(e.clientX-originX)/stage.clientWidth*100,baseY+(e.clientY-originY)/stage.clientHeight*100);});
 stage.addEventListener('pointerup',()=>{dragging=false;stage.classList.remove('dragging');});
 stage.addEventListener('pointercancel',()=>{dragging=false;stage.classList.remove('dragging');});
+
+const toast=$('camera-toast');let toastTimer=null;
+window.demi.onCameraAlert(event=>{toast.textContent=event.message;toast.className='camera-toast visible '+(event.kind||'info');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove('visible'),6000);});
+$('connection-mode').onchange=e=>window.demi.configureCamera({mode:e.target.value});
+$('auto-connect').onchange=e=>window.demi.configureCamera({autoConnect:e.target.checked});
+$('wifi-ip').onchange=e=>window.demi.configureCamera({wifiIp:e.target.value.trim()});
+$('wifi-search').onclick=()=>window.demi.searchWifi();
+$('wifi-connect').onclick=async()=>{const ip=$('wifi-ip').value.trim();const result=await window.demi.connectWifi(ip);if(result?.error){toast.textContent=result.error;toast.className='camera-toast visible warning';}};
