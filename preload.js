@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('demi',{
  mainFullscreen:()=>ipcRenderer.invoke('main-fullscreen'),
  connectCamera:()=>ipcRenderer.invoke('camera-connect'),
  connectWifi:(ip)=>ipcRenderer.invoke('camera-wifi-connect',ip),
+ connectDiscoveredWifi:(ip)=>ipcRenderer.invoke('camera-wifi-selected',ip),
  pairNewCamera:()=>ipcRenderer.invoke('camera-pair-new'),
  searchWifi:()=>ipcRenderer.invoke('camera-search'),
  openWifiDiagnostic:()=>ipcRenderer.invoke('camera-open-diagnostic'),
