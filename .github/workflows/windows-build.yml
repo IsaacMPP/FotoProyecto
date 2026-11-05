@@ -21,6 +21,24 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Compilar puente Canon x64
         run: dotnet publish camera-bridge/DemiCameraBridge.csproj -c Release -r win-x64 --self-contained true -o camera-bridge/publish
+      - name: Incluir ExifTool para vistas previas RAW (CR2/CR3)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $uri = 'https://downloads.sourceforge.net/project/exiftool/exiftool-13.60_64.zip'
+          $zip = Join-Path $env:RUNNER_TEMP 'exiftool.zip'
+          Invoke-WebRequest -Uri $uri -OutFile $zip -MaximumRedirection 10 -TimeoutSec 120
+          $expected = '548b1f4e0b713cd2a26824b34080c35db4e2d2edd166468eb38b1d55ada90c2e'
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne $expected) { throw "ExifTool SHA256 invalido: $hash" }
+          $extract = Join-Path $env:RUNNER_TEMP 'exiftool-extract'
+          Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+          $bin = Get-ChildItem $extract -Filter 'exiftool(-k).exe' -File -Recurse | Select-Object -First 1
+          if (-not $bin) { throw 'No se encontro exiftool(-k).exe' }
+          Copy-Item $bin.FullName 'camera-bridge/publish/exiftool.exe'
+          $lib = Join-Path $bin.DirectoryName 'exiftool_files'
+          if (-not (Test-Path $lib)) { throw 'No se encontro carpeta exiftool_files' }
+          Copy-Item $lib 'camera-bridge/publish/exiftool_files' -Recurse -Force
       - name: Instalar dependencias
         run: npm install --no-audit --no-fund
       - name: Validar JavaScript
