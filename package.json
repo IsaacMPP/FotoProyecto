@@ -1,6 +1,6 @@
 {
-  "name": "demi-tether-studio",
-  "version": "0.8.7",
+  "name": "demi-visor-studio",
+  "version": "0.8.8",
   "private": true,
   "description": "Demi Visor Studio para Windows con conexión Canon USB y Wi-Fi",
   "main": "main.js",
