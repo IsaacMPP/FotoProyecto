@@ -53,3 +53,14 @@ body{display:flex;flex-direction:column}
  .workspace{padding:9px 10px}
  .tool-hint{display:none}
 }
+
+
+.connection-choices{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;padding-bottom:11px;border-bottom:1px solid var(--line)}
+.connection-choices .switch-line{margin:6px 0 8px}
+.connection-choices .btn{width:100%}
+.connection-choices .field-label{margin:4px 0 0}
+.wifi-input{width:100%;height:36px;border:1px solid #3b526b;border-radius:8px;padding:8px 10px;background:#202e40;color:#eaf6ff;outline-color:var(--cyan)}
+.camera-toast{position:fixed;z-index:50;right:24px;top:80px;max-width:340px;padding:15px 18px;border-radius:12px;background:#1b3641;border:1px solid #4794ae;box-shadow:0 12px 30px #0008;color:#e9f8ff;opacity:0;transform:translateY(-12px);pointer-events:none;transition:opacity .2s,transform .2s}
+.camera-toast.visible{opacity:1;transform:translateY(0)}
+.camera-toast.warning{background:#3b2c1c;border-color:#b7803c}
+.camera-toast.success{background:#163d33;border-color:#39a880}
