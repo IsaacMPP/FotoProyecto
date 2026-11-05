@@ -1,8 +1,13 @@
 'use strict';
 const {app,BrowserWindow,ipcMain,dialog,screen,globalShortcut,protocol,shell}=require('electron');
+// Preserve the existing EOS pairing preferences when the visible application name changes.
+ // The legacy app data directory contains the camera GUID and Wi-Fi preferences.
+ // Keep internal package/app identifiers unchanged so installations remain compatible.
 protocol.registerSchemesAsPrivileged([{scheme:'demiphoto',privileges:{standard:true,secure:true,supportFetchAPI:true,stream:true}}]);
 const {spawn,execFile}=require('node:child_process');const {randomUUID}=require('node:crypto');const {Bonjour}=require('bonjour-service');
 const dgram=require('node:dgram');const fs=require('node:fs');const path=require('node:path');const os=require('node:os');const {Notification}=require('electron');
+// Existing users already have camera-settings.json under the former application name.
+app.setPath('userData',path.join(app.getPath('appData'),'Demi Tether Studio'));
 let main=null,projection=null,folder=path.join(app.getPath('pictures'),'Demi Tether Studio');
 let list=[],position=-1,auto=true,displayId=null,observer=null;const sizes=new Map();
 let cameraProc=null,camera='Canon no conectada',cameraMode='USB',connected=false,autoConnect=true,wifiIp='',scanBusy=false,lastAlert='',lastWifiScan=0,nextUsbAttempt=0,desiredMode='auto',autoTimer=null,nextWifiAttempt=0,pairGuid=randomUUID(),pairingAttempt=false,assistedWifi=false,assistedReceived=0,wifiCandidates=[],fastJpegMode=true,preferredCameraService='';
@@ -20,7 +25,7 @@ const diagnosticFile=path.join(app.getPath('userData'),'wifi-diagnostico.txt');
 function diagnostic(step,details=''){try{fs.mkdirSync(path.dirname(diagnosticFile),{recursive:true});fs.appendFileSync(diagnosticFile,new Date().toISOString()+' | '+step+' | '+String(details).slice(0,700)+'\n');}catch{}}
 try{const c=JSON.parse(fs.readFileSync(preferencesFile,'utf8'));wifiIp=String(c.wifiIp||'');autoConnect=c.autoConnect!==false;desiredMode=['auto','usb','wifi'].includes(c.mode)?c.mode:'auto';assistedWifi=c.assistedWifi===true;if(assistedWifi&&typeof c.assistedFolder==='string'&&c.assistedFolder.length<500)folder=c.assistedFolder;if(assistedWifi)autoConnect=false;fastJpegMode=c.fastJpegMode!==false;preferredCameraService=typeof c.preferredCameraService==='string'?c.preferredCameraService.slice(0,100):'';if(typeof c.pairGuid==='string'&&/^[0-9a-f-]{36}$/i.test(c.pairGuid))pairGuid=c.pairGuid;}catch{}
 function savePrefs(){try{fs.mkdirSync(path.dirname(preferencesFile),{recursive:true});fs.writeFileSync(preferencesFile,JSON.stringify({wifiIp,autoConnect,mode:desiredMode,fastJpegMode,preferredCameraService,pairGuid,assistedWifi,assistedFolder:assistedWifi?folder:''},null,2));}catch(e){console.error('Preferences',e.message);}}
-function inform(message,kind='info'){if(lastAlert===message)return;lastAlert=message;for(const w of [main,projection])if(w&&!w.isDestroyed())w.webContents.send('camera-alert',{message,kind});if(Notification.isSupported()){try{new Notification({title:'Demi Tether Studio',body:message}).show();}catch{}}}
+function inform(message,kind='info'){if(lastAlert===message)return;lastAlert=message;for(const w of [main,projection])if(w&&!w.isDestroyed())w.webContents.send('camera-alert',{message,kind});if(Notification.isSupported()){try{new Notification({title:'Demi Visor Studio',body:message}).show();}catch{}}}
 function isPrivateIp(ip){const m=/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip);if(!m)return false;const a=m.slice(1).map(Number);return a.every(x=>x>=0&&x<=255)&&(a[0]===10||(a[0]===172&&a[1]>=16&&a[1]<=31)||(a[0]===192&&a[1]===168)||(a[0]===169&&a[1]===254));}
 async function discoverMdns(waitMs=6500){
  let bonjour=null,browser=null;
