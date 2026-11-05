@@ -24,3 +24,11 @@ El flujo GitHub Actions genera ejecutables Windows con Electron y un puente C# .
 
 ## Galería Canon mejorada (v0.5.0)
 Se recorren todas las carpetas visibles mediante EDSDK. Se cuentan JPEG y RAW CR2; los RAW utilizan miniaturas JPEG obtenidas desde la propia cámara. Las últimas 30 JPEG se importan a resolución completa y las anteriores como vistas previas, con fecha original de captura para ordenarlas. Ya no existe límite de 30 archivos visibles. Los RAW nuevos generan una previsualización cuando lo permite la cámara. Esta funcionalidad se ha compilado pero requiere prueba real; el SDK puede rechazar miniaturas o transferencias en determinadas configuraciones. No se borra ningún archivo de la tarjeta. **Importante**: importar una tarjeta con muchas fotos puede tardar y consumir espacio, y el visor muestra miniaturas para fotos antiguas.
+
+## Nueva interfaz v0.6.0
+- Interfaz juvenil oscura con acentos celestes, tarjetas y controles más visibles.
+- ESC en el televisor sale de pantalla completa sin cerrar el visor; botón ⛶ para volver a pantalla completa.
+- Zoom de 100% a 600% con gesto de pellizcar (según cómo Windows envíe el evento), desplazamiento del touchpad/rueda, deslizador y botones +/-.
+- Arrastrar con mouse o touchpad para recorrer la fotografía ampliada; el zoom y desplazamiento están sincronizados con la pantalla del cliente.
+- Navegación ←/→, PageUp/PageDown y mandos que envíen estas teclas. Al cambiar de foto se reajusta el zoom.
+- El motor de cámara EDSDK permanece sin cambios respecto a v0.5.0. Es necesario probar gestos y atajos con el touchpad y presentador concretos.
