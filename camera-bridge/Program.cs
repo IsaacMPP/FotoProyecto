@@ -68,7 +68,7 @@ internal static class Program
         try
         {
             Check(EDSDK.EdsDownload(item,info.size,stream),"EdsDownload");
-            if(transferRequest) Check(EDSDK.EdsDownloadComplete(item),"EdsDownloadComplete");
+            Check(EDSDK.EdsDownloadComplete(item),"EdsDownloadComplete");
             PreserveDate(target,cameraDate);
             Emit("photo",target);
         }
