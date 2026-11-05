@@ -39,7 +39,7 @@ replacement=r'''    private ushort _operationCode;
             BinaryPrimitives.WriteUInt16LittleEndian(request.AsSpan(12), code);
             BinaryPrimitives.WriteUInt32LittleEndian(request.AsSpan(14), tx);
             packet.Slice(12).CopyTo(request.AsMemory(18));
-            Console.Error.WriteLine("[PTP-IP] OperationRequest opcode=0x" + code.ToString("X4") + " tx=" + tx);
+            if (code != 0x9116) Console.Error.WriteLine("[PTP-IP] OperationRequest opcode=0x" + code.ToString("X4") + " tx=" + tx);
             await _commandStream.WriteAsync(request, ct);
         }
         else if (kind is PtpContainerType.Data)
@@ -89,7 +89,7 @@ replacement=r'''    private ushort _operationCode;
                 if (received < 14) throw new IOException("Short OperationResponse");
                 ushort status = BinaryPrimitives.ReadUInt16LittleEndian(incoming.AsSpan(8));
                 uint tx = BinaryPrimitives.ReadUInt32LittleEndian(incoming.AsSpan(10));
-                Console.Error.WriteLine("[PTP-IP] OperationResponse code=0x" + status.ToString("X4") + " tx=" + tx);
+                if (_operationCode != 0x9116 || status != 0x2001) Console.Error.WriteLine("[PTP-IP] OperationResponse code=0x" + status.ToString("X4") + " tx=" + tx);
                 return WritePtp(buffer, PtpContainerType.Response, status, tx, incoming.AsSpan(14,received-14));
             }
             if (kind is PtpIpPacketType.StartDataPacket)
@@ -109,7 +109,7 @@ replacement=r'''    private ushort _operationCode;
                         throw new IOException("PTP/IP data exceeds receive buffer: "+data.Length);
                     if (dataKind is PtpIpPacketType.EndDataPacket) break;
                 }
-                Console.Error.WriteLine("[PTP-IP] DataReceived opcode=0x" + _operationCode.ToString("X4") + " bytes=" + data.Length);
+                if (_operationCode != 0x9116 || data.Length > 8) Console.Error.WriteLine("[PTP-IP] DataReceived opcode=0x" + _operationCode.ToString("X4") + " bytes=" + data.Length);
                 return WritePtp(buffer,PtpContainerType.Data,_operationCode,tx,data.ToArray());
             }
             if (kind is PtpIpPacketType.ProbeRequest)
