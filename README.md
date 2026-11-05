@@ -132,3 +132,19 @@ El diagnóstico físico EOS 6D Mark II de 2026-11-05 confirma el anuncio SSDP de
 - Sigue pendiente la confirmación física: es una corrección de un problema observable en nuestro código, **no** prueba de que el protocolo Canon acepte el cliente. Las conexiones SSDP detectadas no cuentan como sesiones emparejadas.
 
 Para la prueba: usar modo **Solo Wi-Fi**, desactivar temporalmente la reconexión automática, cerrar EOS Utility si se está intentando conexión **nativa**, crear una conexión nueva en menú Canon y pulsar **Buscar cámara Wi-Fi** una sola vez mientras espera asociación. Si vuelve a Err 11, abrir el diagnóstico y copiar la nueva secuencia; no repetir decenas de intentos en rápida sucesión.
+
+
+## v0.8.0 — Emparejar directamente Demi (experimental)
+
+**Objetivo:** crear una asociación propia y persistente con la EOS 6D Mark II, sin utilizar EOS Utility para establecer ni mantener la sesión. El SDK usado para la conexión nativa es FC.SDK con identidad de cliente persistente; la funcionalidad todavía necesita validación física con este modelo.
+
+**Prueba controlada:**
+1. En Windows, salir por completo de EOS Utility, incluido su proceso de asociación en segundo plano.
+2. En Demi Tether Studio, apagar **Conectar y reconectar automáticamente**.
+3. En Canon: función Wi-Fi → **Control remoto (EOS Utility)** → **Registrar dispositivo para conexión**. Crear una asociación nueva; no elegir la conexión guardada de EOS Utility.
+4. Unirse desde Windows a la misma red de la cámara.
+5. En Demi pulsar **Emparejar Demi con Canon (sin EOS Utility)** una sola vez. La aplicación genera un nuevo GUID local de cliente, lo guarda y utiliza el nombre *Demi Tether Studio*. No se borra ni suplanta la identidad de EOS Utility.
+6. Si la Canon pide permiso para la conexión con el ordenador, confirmar. Si completa la sesión, disparar tres JPG de prueba.
+7. Si falla, pulsar **Abrir diagnóstico Wi-Fi**. Se registran por separado: apertura del TCP de comandos, envío InitCommandRequest, tipo de respuesta, apertura del canal de eventos, envío InitEventRequest y respuesta. El registro no imprime el GUID.
+
+**Limitación:** la respuesta TCP rechazada puede aparecer si EOS Utility sigue usando la cámara, si se reutiliza un perfil anterior o si el firmware de la 6D II requiere otro paso de asociación. El código y la compilación por sí solos no prueban compatibilidad Wi-Fi completa; solo una sesión física aceptada y una fotografía recibida pueden confirmarla.
