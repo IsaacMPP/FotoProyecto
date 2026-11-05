@@ -2,6 +2,7 @@
 const {contextBridge,ipcRenderer}=require('electron');
 contextBridge.exposeInMainWorld('demi',{
  state:()=>ipcRenderer.invoke('state'),
+ mainFullscreen:()=>ipcRenderer.invoke('main-fullscreen'),
  connectCamera:()=>ipcRenderer.invoke('camera-connect'),
  disconnectCamera:()=>ipcRenderer.invoke('camera-disconnect'),
  selectFolder:()=>ipcRenderer.invoke('select-folder'),
