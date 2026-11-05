@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('demi',{
  assistedWifi:()=>ipcRenderer.invoke('camera-assist-wifi'),
  disableAssistedWifi:()=>ipcRenderer.invoke('camera-assist-off'),
  configureCamera:(config)=>ipcRenderer.invoke('camera-config',config),
+ setFastJpeg:(enabled)=>ipcRenderer.invoke('camera-fast-jpeg',enabled),
  onCameraAlert:(callback)=>{const fn=(_e,v)=>callback(v);ipcRenderer.on('camera-alert',fn);return()=>ipcRenderer.removeListener('camera-alert',fn)},
  disconnectCamera:()=>ipcRenderer.invoke('camera-disconnect'),
  selectFolder:()=>ipcRenderer.invoke('select-folder'),
