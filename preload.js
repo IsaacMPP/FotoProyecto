@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('demi',{
  connectWifi:(ip)=>ipcRenderer.invoke('camera-wifi-connect',ip),
  searchWifi:()=>ipcRenderer.invoke('camera-search'),
  openWifiDiagnostic:()=>ipcRenderer.invoke('camera-open-diagnostic'),
+ assistedWifi:()=>ipcRenderer.invoke('camera-assist-wifi'),
+ disableAssistedWifi:()=>ipcRenderer.invoke('camera-assist-off'),
  configureCamera:(config)=>ipcRenderer.invoke('camera-config',config),
  onCameraAlert:(callback)=>{const fn=(_e,v)=>callback(v);ipcRenderer.on('camera-alert',fn);return()=>ipcRenderer.removeListener('camera-alert',fn)},
  disconnectCamera:()=>ipcRenderer.invoke('camera-disconnect'),
