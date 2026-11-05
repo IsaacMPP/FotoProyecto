@@ -175,3 +175,11 @@ El script `ptpip-framing-patch.py` corrige en el checkout fijado de FC.SDK:
 **Validación pendiente con el hardware real:** la compilación exitosa no garantiza todavía que se complete `OpenSession`, que el firmware acepte `SetRemoteMode`, o que la transferencia de fotos sea correcta. El diagnóstico registra `[PTP-IP] OperationRequest opcode=...`, `OperationResponse code=...` y `DataReceived` para detectar el siguiente punto con precisión. El cambio solo se aplica al motor **Wi-Fi**, sin alterar el puente USB EDSDK.
 
 Para probar: deja la cámara esperando nueva asociación, cierra EOS Utility, entra en Solo Wi-Fi y selecciona **192.168.1.60 — mDNS** si la cámara sigue anunciándose con esa dirección; evita usar `192.168.1.47` solo por aparecer en SSDP. Inicia una conexión y envía únicamente las nuevas líneas del diagnóstico posteriores a `Traza PTP/IP`.
+
+
+## v0.8.3 — Inicialización Wi-Fi EOS 6D Mark II
+La prueba física detectó OpenSession 0x1002 (OK), SetRemoteMode 0x9114 (OK), SetEventMode 0x9115 (OK) y volcado de eventos 0x9116 (OK). La inicialización se bloqueaba en la transacción 13: solicitud opcional 0x9127 que no respondía.
+
+El script wifi-startup-patch.py omite exclusivamente las peticiones opcionales 0x9127 durante el arranque Wi-Fi y preserva las operaciones esenciales. Se activa solo en wifi-bridge, con DEMI_WIFI_SKIP_OPTIONAL_STARTUP=1; el puente USB no cambia. El tiempo máximo de apertura pasa a 35 segundos. La traza incluye "Essential session initialized; skipping optional property reads 0x9127".
+
+Pendiente: validar sesión abierta y descarga de una foto real. No se considera conexión comprobada solo por compilar. Para la prueba, cerrar EOS Utility, conservar el perfil/GUID actual y seleccionar la IP de la Canon 192.168.1.60 si sigue siendo la anunciada por mDNS.
