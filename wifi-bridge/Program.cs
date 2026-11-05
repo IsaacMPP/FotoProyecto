@@ -51,10 +51,13 @@ internal static class Program
         Console.CancelKeyPress+=(_,e)=>{e.Cancel=true;cts.Cancel();};
         try
         {
+            Emit("status","PTP/IP: iniciando conexión TCP con "+ip+":15740");
             await using var camera = CanonCamera.ConnectWifi(ip,"Demi Tether Studio");
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            Emit("status","PTP/IP: enviando identidad del cliente y esperando autorización de la Canon...");
             var result=await camera.OpenSessionAsync(timeout.Token);
             if(result != EdsError.OK) throw new Exception("No se pudo abrir sesión Wi-Fi: "+result);
+            Emit("status","PTP/IP: sesión aceptada; activando recepción de fotos...");
             camera.ObjectAdded+=(_,e)=> Items.Enqueue(e.ObjectHandle);
             camera.StartEventPolling(TimeSpan.FromMilliseconds(250));
             try
@@ -110,7 +113,7 @@ internal static class Program
             }
             return 0;
         }
-        catch(OperationCanceledException){return 0;}
-        catch(Exception ex){Emit("error","Conexión Wi-Fi: "+ex.Message);return 1;}
+        catch(OperationCanceledException){Emit("error","La Canon no completó el handshake PTP/IP en 15 segundos. Confirma que esté en pantalla de emparejamiento EOS Utility y Windows conectado a la misma red.");return 4;}
+        catch(Exception ex){Emit("error","Handshake PTP/IP falló: "+ex.GetType().Name+": "+ex.Message);return 1;}
     }
 }
