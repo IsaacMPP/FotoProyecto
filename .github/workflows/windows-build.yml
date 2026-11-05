@@ -73,6 +73,8 @@ jobs:
           $lib = Join-Path $bin.DirectoryName 'exiftool_files'
           if (-not (Test-Path $lib)) { throw 'No se encontro carpeta exiftool_files' }
           Copy-Item $lib 'camera-bridge/publish/exiftool_files' -Recurse -Force
+          Copy-Item 'camera-bridge/publish/exiftool.exe' 'wifi-bridge/publish/exiftool.exe'
+          Copy-Item 'camera-bridge/publish/exiftool_files' 'wifi-bridge/publish/exiftool_files' -Recurse -Force
       - name: Instalar dependencias
         run: npm install --no-audit --no-fund
       - name: Validar JavaScript
