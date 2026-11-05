@@ -11,13 +11,14 @@ internal static class Program
     private const uint TransferRequest = 0x00000208;
     private const uint SaveToProp = 0x0000000B;
     private const uint SaveToBoth = 3;
-    private const int GalleryLimit = 30;
+    private const int FullJpegLimit = 30; // older JPEGs use camera previews for faster gallery loading
     private static IntPtr camera, cameraList;
     private static bool initialized, session;
     private static string output = "";
     private static EDSDK.ObjectHandler? handler;
     private static readonly object consoleLock = new();
-    private static readonly List<(string name, uint date, IntPtr item)> gallery = new();
+    private static readonly List<(string name, uint date, IntPtr item, bool raw)> gallery = new();
+    private static int folderCount=0,jpegCount=0,rawCount=0,otherCount=0;
     private static int running = 1;
 
     private static void Emit(string type, string message)
@@ -43,7 +44,7 @@ internal static class Program
         finally { EDSDK.EdsRelease(item); }
         return 0;
     }
-    private static void Download(IntPtr item,string prefix="")
+    private static void Download(IntPtr item,string prefix="", bool transferRequest=true, uint cameraDate=0)
     {
         Check(EDSDK.EdsGetDirectoryItemInfo(item, out var info), "EdsGetDirectoryItemInfo");
         var original = prefix+Path.GetFileName(info.fileName);
@@ -59,38 +60,65 @@ internal static class Program
         try
         {
             Check(EDSDK.EdsDownload(item,info.size,stream),"EdsDownload");
-            Check(EDSDK.EdsDownloadComplete(item),"EdsDownloadComplete");
+            if(transferRequest) Check(EDSDK.EdsDownloadComplete(item),"EdsDownloadComplete");
+            PreserveDate(target,cameraDate);
             Emit("photo",target);
         }
         finally { EDSDK.EdsRelease(stream); }
     }
-    private static void CollectGallery(IntPtr parent, int depth)
+
+    private static void PreserveDate(string file,uint cameraDate)
     {
-        if(depth > 5) return;
+        if(cameraDate<946684800 || cameraDate>4102444800) return;
+        try {File.SetLastWriteTimeUtc(file,DateTimeOffset.FromUnixTimeSeconds(cameraDate).UtcDateTime);}
+        catch(Exception ex){Emit("error","Fecha: "+ex.Message);}
+    }
+    private static void DownloadPreview(IntPtr item,string target,uint cameraDate)
+    {
+        Check(EDSDK.EdsCreateFileStream(target,1,2,out var stream),"EdsCreateFileStream(vista previa)");
+        try {Check(EDSDK.EdsDownloadThumbnail(item,stream),"EdsDownloadThumbnail");}
+        catch {try{File.Delete(target);}catch{} throw;}
+        finally {EDSDK.EdsRelease(stream);}
+        PreserveDate(target,cameraDate);
+        Emit("photo",target);
+    }
+    private static void CollectGallery(IntPtr parent,int depth)
+    {
+        if(depth>12) {Emit("error","Se alcanzó el límite de niveles de carpetas");return;}
         uint err=EDSDK.EdsGetChildCount(parent,out var count);
-        if(err!=0) {Emit("error","No se pudo leer carpeta de cámara (0x"+err.ToString("X8")+")");return;}
+        if(err!=0){Emit("error","No se pudo explorar una carpeta de la tarjeta: 0x"+err.ToString("X8"));return;}
         for(int i=0;i<count;i++)
         {
             IntPtr item=IntPtr.Zero;
             try
             {
                 Check(EDSDK.EdsGetChildAtIndex(parent,i,out item),"EdsGetChildAtIndex(galería)");
-                if(EDSDK.EdsGetDirectoryItemInfo(item,out var info)!=0) {
-                    // Camera volumes do not expose directory item info.
+                if(EDSDK.EdsGetDirectoryItemInfo(item,out var info)!=0)
+                {
+                    // Volúmenes de tarjeta SD (no son archivos).
                     CollectGallery(item,depth+1);
                 }
                 else if(info.isFolder)
-                    CollectGallery(item,depth+1);
-                else if(info.fileName!=null &&
-                        (info.fileName.EndsWith(".jpg",StringComparison.OrdinalIgnoreCase) ||
-                         info.fileName.EndsWith(".jpeg",StringComparison.OrdinalIgnoreCase)))
                 {
-                    gallery.Add((info.fileName,info.dateTime,item));
-                    item=IntPtr.Zero;
+                    folderCount++;
+                    CollectGallery(item,depth+1);
+                }
+                else
+                {
+                    string ext=Path.GetExtension(info.fileName??"").ToUpperInvariant();
+                    bool raw=ext==".CR2"||ext==".CR3";
+                    bool jpeg=ext==".JPG"||ext==".JPEG";
+                    if(jpeg||raw)
+                    {
+                        if(raw)rawCount++;else jpegCount++;
+                        gallery.Add((info.fileName,info.dateTime,item,raw));
+                        item=IntPtr.Zero;
+                    }
+                    else otherCount++;
                 }
             }
-            catch(Exception ex) {Emit("error","Explorando tarjeta: "+ex.Message);}
-            finally {if(item!=IntPtr.Zero)EDSDK.EdsRelease(item);}
+            catch(Exception ex){Emit("error","Explorando tarjeta: "+ex.Message);}
+            finally{if(item!=IntPtr.Zero)EDSDK.EdsRelease(item);}
         }
     }
     private static void ImportGallery()
@@ -98,28 +126,59 @@ internal static class Program
         try
         {
             gallery.Clear();
+            folderCount=jpegCount=rawCount=otherCount=0;
             CollectGallery(camera,0);
             int total=gallery.Count;
-            Emit("status",$"Canon conectada. Galería detectada: {total} fotos JPG. Importando últimas {Math.Min(total,GalleryLimit)}...");
-            var ordered=gallery.OrderBy(p=>p.date).ThenBy(p=>p.name,StringComparer.OrdinalIgnoreCase).ToList();
-            var latest=ordered.TakeLast(GalleryLimit).ToList();
-            int importedCount=0;
-            foreach(var photo in latest)
+            Emit("status",$"Tarjeta: {folderCount} carpetas, {jpegCount} JPEG, {rawCount} RAW, {otherCount} otros. Preparando galería...");
+            if(total==0){Emit("status","Canon conectada. No se encontraron JPEG ni RAW en la tarjeta. Nuevos disparos activos.");return;}
+            // Si existen dos archivos RAW+JPEG del mismo disparo, preferir JPEG para previsualizar.
+            var sorted=gallery.OrderBy(p=>p.date==0?uint.MaxValue:p.date)
+                .ThenBy(p=>p.name,StringComparer.OrdinalIgnoreCase).ToList();
+            var selected=sorted
+                .GroupBy(p=>(p.date,Path.GetFileNameWithoutExtension(p.name).ToUpperInvariant()))
+                .Select(g=>g.OrderBy(p=>p.raw?1:0).First())
+                .ToList();
+            int loaded=0,failed=0;
+            var newestFull=selected.TakeLast(FullJpegLimit).ToHashSet();
+            for(int i=0;i<selected.Count;i++)
             {
+                var photo=selected[i];
                 try
                 {
-                    string target=Path.Combine(output,"Canon_"+photo.name);
-                    if(!File.Exists(target)) { Download(photo.item,"Canon_"); importedCount++; }
+                    string stem=Path.GetFileNameWithoutExtension(photo.name);
+                    // Identificador estable que conserva orden y evita colisiones entre carpetas.
+                    string target=Path.Combine(output,"Canon_"+photo.date+"_"+stem+".jpg");
+                    if(!File.Exists(target))
+                    {
+                        if(!photo.raw && newestFull.Contains(photo))
+                        {
+                            // Para las últimas JPEG descargamos resolución completa.
+                            Download(photo.item,"Canon_"+photo.date+"_",false,photo.date);
+                        }
+                        else
+                        {
+                            // RAW: extraemos su vista JPEG. Para JPEG antiguas también aceleramos la galería.
+                            DownloadPreview(photo.item,target,photo.date);
+                        }
+                    }
+                    else PreserveDate(target,photo.date);
+                    // Corrige el orden de versiones anteriores sin borrar ninguna foto.
+                    string legacy=Path.Combine(output,"Canon_"+photo.name);
+                    if(File.Exists(legacy))PreserveDate(legacy,photo.date);
+                    loaded++;
                 }
-                catch(Exception ex) {Emit("error","Galería "+photo.name+": "+ex.Message);}
-                finally { EDSDK.EdsRelease(photo.item);gallery.Remove(photo); }
+                catch(Exception ex){failed++;Emit("error","Importando "+photo.name+": "+ex.Message);}
+                if(i==0 || (i+1)%20==0)Emit("status",$"Galería: {i+1}/{selected.Count} fotografías procesadas ({jpegCount} JPEG, {rawCount} RAW en tarjeta).");
                 EDSDK.EdsGetEvent();
             }
-            foreach(var photo in gallery) EDSDK.EdsRelease(photo.item);
-            gallery.Clear();
-            Emit("status",$"Canon conectada por USB. {total} JPEG encontrados; {importedCount} importados. Nuevos disparos activos.");
+            Emit("status",$"Canon USB conectada. Tarjeta: {jpegCount} JPEG y {rawCount} RAW en {folderCount} carpetas. Galería: {loaded} fotografías; {failed} errores. Nuevos disparos activos.");
         }
-        catch(Exception ex) {Emit("error","No se pudo listar galería: "+ex.Message);}
+        catch(Exception ex){Emit("error","Error leyendo galería: "+ex.Message);}
+        finally
+        {
+            foreach(var photo in gallery)try{EDSDK.EdsRelease(photo.item);}catch{}
+            gallery.Clear();
+        }
     }
     public static int Main(string[] args)
     {
@@ -195,6 +254,7 @@ internal static class EDSDK
     [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall,CharSet=CharSet.Ansi)] public static extern uint EdsCreateFileStream(string path,uint disposition,uint access,out IntPtr stream);
     [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall)] public static extern uint EdsDownload(IntPtr item,ulong size,IntPtr stream);
     [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall)] public static extern uint EdsDownloadComplete(IntPtr item);
+    [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall)] public static extern uint EdsDownloadThumbnail(IntPtr item,IntPtr stream);
     [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall)] public static extern uint EdsDownloadCancel(IntPtr item);
     [DllImport("EDSDK.dll",CallingConvention=CallingConvention.StdCall)] public static extern uint EdsGetEvent();
 }
