@@ -1,4 +1,4 @@
-# Demi Tether Studio v0.4.0 — Windows
+# Demi Tether Studio v0.5.0 — Windows
 
 ## Canon USB directo
 
@@ -21,3 +21,6 @@ Aún no implementado. La compatibilidad inalámbrica 6D Mark II no queda validad
 
 ## Compilación
 El flujo GitHub Actions genera ejecutables Windows con Electron y un puente C# .NET 8 incorporado; no contiene DLL propietarias de Canon. Los ejecutables se publican en **Artifacts**.
+
+## Galería Canon mejorada (v0.5.0)
+Se recorren todas las carpetas visibles mediante EDSDK. Se cuentan JPEG y RAW CR2; los RAW utilizan miniaturas JPEG obtenidas desde la propia cámara. Las últimas 30 JPEG se importan a resolución completa y las anteriores como vistas previas, con fecha original de captura para ordenarlas. Ya no existe límite de 30 archivos visibles. Los RAW nuevos generan una previsualización cuando lo permite la cámara. Esta funcionalidad se ha compilado pero requiere prueba real; el SDK puede rechazar miniaturas o transferencias en determinadas configuraciones. No se borra ningún archivo de la tarjeta. **Importante**: importar una tarjeta con muchas fotos puede tardar y consumir espacio, y el visor muestra miniaturas para fotos antiguas.
