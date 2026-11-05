@@ -36,7 +36,7 @@ async function discoverSsdp(waitMs=7000){
        const message=buffer.toString('utf8');
        if(!/schemas-canon-com:service:ICPO-WFTEOSSystemService|Canon Device Discovery|Canon EOS/i.test(message))return;
        if(isPrivateIp(peer.address))candidates.add(peer.address);
-       const location=/^location:\\s*([^\\r\\n]+)/im.exec(message)?.[1];
+       const location=/^location:\s*([^\r\n]+)/im.exec(message)?.[1];
        if(location){try{const url=new URL(location);if(isPrivateIp(url.hostname))candidates.add(url.hostname);}catch{}}
      });
      await new Promise(resolve=>{
@@ -44,7 +44,7 @@ async function discoverSsdp(waitMs=7000){
        socket.once('error',resolve);
        try{socket.bind(1900,'0.0.0.0');}catch{resolve();}
      });
-     const search='M-SEARCH * HTTP/1.1\\r\\nHOST: 239.255.255.250:1900\\r\\nMAN: "ssdp:discover"\\r\\nMX: 2\\r\\nST: urn:schemas-canon-com:service:ICPO-WFTEOSSystemService:1\\r\\n\\r\\n';
+     const search='M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: 2\r\nST: urn:schemas-canon-com:service:ICPO-WFTEOSSystemService:1\r\n\r\n';
      try{socket.setMulticastInterface(network.address);socket.send(Buffer.from(search),1900,'239.255.255.250');}catch(e){console.error('SSDP search:',e.message);}
    }
    await new Promise(resolve=>setTimeout(resolve,waitMs));
