@@ -160,3 +160,18 @@ En la prueba aportada por el usuario (2026-11-05 06:48 UTC), mDNS devolvió `192
 - En una asociación nueva, el botón **Emparejar Demi con Canon** prepara el GUID y realiza descubrimiento. Si existen varias IP, debes seleccionar una antes de continuar.
 
 **Prueba sugerida:** vuelve a iniciar una nueva asociación en la Canon, pulsa el botón de emparejamiento, examina nombre/origen de las dos IP y elige la correspondiente a la Canon. Si no hay certeza, puedes probarlas de una en una con la cámara esperando y registrar las fases PTP/IP. Si sigue apareciendo `SocketException: connection refused`, necesitamos el registro de la IP concreta para distinguir selección incorrecta de problema del protocolo de asociación.
+
+
+## v0.8.2 — Corregir OpenSession después de los dos ACK PTP/IP
+El registro de la Canon EOS 6D Mark II de 2026-11-05 07:00:31 y 07:02:25 confirma que la cámara `192.168.1.60` aceptó **InitCommandAck** y **InitEventAck**. El fallo siguiente `InternalError` sucede al comenzar las operaciones PTP. El transporte Wi-Fi del FC.SDK fijado construía `OperationRequest` con 6 bytes de sobra y devolvía `OperationResponse`/paquetes de datos sin reconstruir la cabecera PTP estándar que exige su `PtpSession`. Como consecuencia, el propio motor trataba respuestas válidas como un error genérico.
+
+El script `ptpip-framing-patch.py` corrige en el checkout fijado de FC.SDK:
+- El tamaño y campos de **OperationRequest** (op code, transaction id, data phase, parámetros) y el envío de datos de escritura.
+- La adaptación **OperationResponse → PTP Response** y **StartData / DataPacket / EndDataPacket → PTP Data**, con tamaño/código/transacción correctos.
+- La adaptación de eventos de PTP/IP a PTP y respuesta al paquete de keepalive ProbeRequest.
+- El buffer de descarga para CanonGetObject hasta 96 MiB (sin aumentar el buffer de consultas normales).
+- Se conservan el GUID estable, el descubrimiento mDNS de `192.168.1.60`, las trazas y el modo Wi-Fi asistido anterior.
+
+**Validación pendiente con el hardware real:** la compilación exitosa no garantiza todavía que se complete `OpenSession`, que el firmware acepte `SetRemoteMode`, o que la transferencia de fotos sea correcta. El diagnóstico registra `[PTP-IP] OperationRequest opcode=...`, `OperationResponse code=...` y `DataReceived` para detectar el siguiente punto con precisión. El cambio solo se aplica al motor **Wi-Fi**, sin alterar el puente USB EDSDK.
+
+Para probar: deja la cámara esperando nueva asociación, cierra EOS Utility, entra en Solo Wi-Fi y selecciona **192.168.1.60 — mDNS** si la cámara sigue anunciándose con esa dirección; evita usar `192.168.1.47` solo por aparecer en SSDP. Inicia una conexión y envía únicamente las nuevas líneas del diagnóstico posteriores a `Traza PTP/IP`.
