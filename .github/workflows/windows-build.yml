@@ -16,6 +16,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compilar puente Canon x64
+        run: dotnet publish camera-bridge/DemiCameraBridge.csproj -c Release -r win-x64 --self-contained true -o camera-bridge/publish
       - name: Instalar dependencias
         run: npm install --no-audit --no-fund
       - name: Validar JavaScript

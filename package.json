@@ -1,8 +1,8 @@
 {
   "name": "demi-tether-studio",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
-  "description": "Visor fotografico para estudio en Windows",
+  "description": "Demi Tether Studio para Windows con puente Canon EDSDK",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -48,6 +48,15 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    }
+    },
+    "extraResources": [
+      {
+        "from": "camera-bridge/publish",
+        "to": "camera-bridge",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
   }
 }

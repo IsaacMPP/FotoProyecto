@@ -1,24 +1,23 @@
-# Demi Tether Studio — Windows v0.3.0
+# Demi Tether Studio v0.4.0 — Windows
 
-Aplicación independiente para visualizar la **última fotografía** a pantalla completa en un televisor y recorrer las anteriores con flechas, PageUp/PageDown o presentador.
+## Canon USB directo
 
-## Estado real
+Se ha integrado un puente nativo de .NET 8 para **Canon EDSDK**. Al pulsar **Conectar Canon 6D Mark II**, abre sesión con la cámara, configura destino en PC y recibe eventos de transferencia tras cada disparo físico. Guarda imágenes en la carpeta de sesión; la aplicación las presenta automáticamente en pantalla completa.
 
-- **Implementado:** visor, carpeta monitorizada, selección de monitor, nueva fotografía automática, navegación, instalador NSIS y EXE portátil mediante GitHub Actions.
-- **No implementado:** comunicación directa USB/Wi-Fi con Canon EOS 6D Mark II. Para integración nativa Windows hay que desarrollar y probar un puente Canon EDSDK; no se incluye ni se simula el controlador.
-- Por ahora, utiliza imágenes JPEG/PNG/WebP guardadas en la carpeta elegida, independientemente de su origen.
+**Dependencia de fabricante:** Canon EDSDK.dll y sus DLL auxiliares no se pueden redistribuir aquí ni descargar anónimamente. Solicítalas en https://developercommunity.usa.canon.com/s/ (gratis, puede requerir aprobación). Copia las DLL **Windows x64** junto al archivo `DemiCameraBridge.exe` del programa instalado, dentro de `resources/camera-bridge/`. En la versión portátil, los recursos se extraen en una ubicación temporal; para pruebas usa el instalador. Si faltan las DLL, la app muestra el error de dependencia. No instales EOS Utility ni es necesario abrirlo.
 
-## Compilar en GitHub
+### Cómo probar la cámara
+1. Descarga el SDK oficial Canon EDSDK Windows x64. Instala la aplicación compilada por Actions.
+2. Coloca `EDSDK.dll` y los binarios complementarios oficiales junto a `DemiCameraBridge.exe`.
+3. Conecta la cámara por USB, desactiva Wi-Fi en la Canon y cierra EOS Utility / otras apps que usen la cámara.
+4. En la cámara usa **JPEG** o **RAW+JPEG** (el visor admite JPG, PNG, WebP; los RAW descargados no se muestran).
+5. Abre Demi Tether Studio, elige carpeta y pulsa **Conectar Canon 6D Mark II**.
+6. Dispara físicamente, comprueba que el archivo llega a la carpeta y se proyecta en el televisor.
 
-En GitHub, pestaña **Actions**, selecciona **Compilar Windows**. La ejecución de la rama `feature/demi-tether-windows-actions` produce el artefacto **Demi-Tether-Studio-Windows** con instalador y portable. No necesitas Node.js instalado en tu Windows para ejecutar el EXE.
+**Estado de pruebas:** el código puente es una implementación preliminar sin prueba física con la Canon 6D Mark II. El SDK tiene versiones y estructuras nativas que deben validarse con el paquete que proporciona Canon. Si hay errores de inicialización, no se considerará funcional hasta resolverlos.
 
-## Usar
+## Wi-Fi
+Aún no implementado. La compatibilidad inalámbrica 6D Mark II no queda validada mediante CCAPI. No hay botón Wi-Fi ficticio.
 
-1. Conecta el televisor a Windows y elige **Extender pantallas**.
-2. Abre el EXE instalado o portátil.
-3. Elige una carpeta con fotos JPG/PNG/WebP.
-4. Escoge la pantalla y pulsa **Abrir visor**.
-5. Las flechas izquierda/derecha, PageUp/PageDown y los controles de presentaciones compatibles navegan por la galería cuando la ventana de la aplicación está enfocada. Hay atajos globales Alt+Izquierda/Alt+Derecha/Alt+Inicio.
-6. Si se crea una foto nueva en la carpeta, el visor salta a ella cuando la opción automática está activada.
-
-No dependemos de EOS Utility para el visor; la recepción directa desde la Canon está pendiente. No garantizamos el funcionamiento del mando hasta probar el modelo concreto.
+## Compilación
+El flujo GitHub Actions genera ejecutables Windows con Electron y un puente C# .NET 8 incorporado; no contiene DLL propietarias de Canon. Los ejecutables se publican en **Artifacts**.
