@@ -183,3 +183,13 @@ La prueba física detectó OpenSession 0x1002 (OK), SetRemoteMode 0x9114 (OK), S
 El script wifi-startup-patch.py omite exclusivamente las peticiones opcionales 0x9127 durante el arranque Wi-Fi y preserva las operaciones esenciales. Se activa solo en wifi-bridge, con DEMI_WIFI_SKIP_OPTIONAL_STARTUP=1; el puente USB no cambia. El tiempo máximo de apertura pasa a 35 segundos. La traza incluye "Essential session initialized; skipping optional property reads 0x9127".
 
 Pendiente: validar sesión abierta y descarga de una foto real. No se considera conexión comprobada solo por compilar. Para la prueba, cerrar EOS Utility, conservar el perfil/GUID actual y seleccionar la IP de la Canon 192.168.1.60 si sigue siendo la anunciada por mDNS.
+
+
+## v0.8.4 — Fotografía Wi-Fi más rápida sin bajar la calidad
+- Los JPEG y RAW originales se descargan **sin recompresión ni reducción de resolución**; el puente guarda temporalmente como `.part`, realiza el cambio de nombre a su formato final cuando la descarga termina y notifica de inmediato a la interfaz. Evita mostrar imágenes incompletas.
+- La galería confía en la confirmación del propio puente Wi-Fi para mostrar el archivo terminado inmediatamente, en lugar de esperar dos comprobaciones sucesivas de tamaño/fecha; para archivos externos se conserva la validación de estabilidad.
+- La revisión periódica de carpeta baja de 850 a 400 ms y la recepción de eventos Canon pasa de 250 a 120 ms. Se elimina el registro excesivo de consultas sin novedades `0x9116`; se conservan los errores y respuestas útiles.
+- Después de cada transferencia se muestra su duración en el estado (`Foto original ... descargada en ... s`). Así podemos separar la latencia propia de Wi-Fi del tiempo perdido en la aplicación.
+- La copia RAW/JPEG y el modo Wi-Fi nativo permanecen disponibles, sin requerir EOS Utility. La velocidad real depende del tamaño del archivo, las interferencias y el enlace de la Canon.
+
+**Nota:** no se garantiza una transferencia más rápida del archivo completo por encima del límite de Wi-Fi de la cámara. La mejora de interfaz puede ahorrar parte de la espera entre el final de la transferencia y su aparición en pantalla. Validar con tres disparos JPG en una sesión real.
