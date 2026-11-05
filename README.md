@@ -32,3 +32,11 @@ Se recorren todas las carpetas visibles mediante EDSDK. Se cuentan JPEG y RAW CR
 - Arrastrar con mouse o touchpad para recorrer la fotografía ampliada; el zoom y desplazamiento están sincronizados con la pantalla del cliente.
 - Navegación ←/→, PageUp/PageDown y mandos que envíen estas teclas. Al cambiar de foto se reajusta el zoom.
 - El motor de cámara EDSDK permanece sin cambios respecto a v0.5.0. Es necesario probar gestos y atajos con el touchpad y presentador concretos.
+
+
+## Corrección RAW y visor v0.6.1
+- Se aceptan disparos RAW CR2 y CR3: Canon EDSDK intenta extraer una miniatura, y si la cámara no ofrece una JPEG válida se descarga el RAW original y se obtiene su JPEG incrustado con ExifTool. **No se convierten los datos RAW revelándolos**, se usa su previsualización existente; el tamaño depende del RAW.
+- ExifTool oficial 13.60 de Windows se descarga en GitHub Actions desde SourceForge, comprueba SHA-256 y se incluye junto al puente. Licencia ExifTool: https://exiftool.org/ . No requiere instalación separada ni EOS Utility.
+- El visor utiliza un protocolo interno que entrega bytes de la imagen, evitando fallos y lentitud de imágenes base64 en la comunicación Electron. Si una imagen no se puede abrir, se muestra error legible en vez de una vista negra con imagen rota.
+- Si el RAW carece de previsualización incrustada, la app informa del error y conserva el original. No se asegura revelado de CR2/CR3 ni su edición.
+- Cámara y zoom originales sin cambios. **Falta probar con Canon física los dos formatos y la carga real en el televisor.**
