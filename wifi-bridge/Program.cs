@@ -55,7 +55,7 @@ internal static class Program
         {
             Environment.SetEnvironmentVariable("DEMI_WIFI_SKIP_OPTIONAL_STARTUP", "1");
             Emit("status","PTP/IP: iniciando conexión TCP con "+ip+":15740");
-            await using var camera = CanonCamera.ConnectWifi(ip,"Demi Tether Studio");
+            await using var camera = CanonCamera.ConnectWifi(ip,"Demi Visor Studio");
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(35));
             Emit("status","PTP/IP: enviando identidad del cliente y esperando autorización de la Canon...");
             var result=await camera.OpenSessionAsync(timeout.Token);
