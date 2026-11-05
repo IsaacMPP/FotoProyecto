@@ -5,7 +5,7 @@ const {spawn,execFile}=require('node:child_process');const {randomUUID}=require(
 const dgram=require('node:dgram');const fs=require('node:fs');const path=require('node:path');const os=require('node:os');const {Notification}=require('electron');
 let main=null,projection=null,folder=path.join(app.getPath('pictures'),'Demi Tether Studio');
 let list=[],position=-1,auto=true,displayId=null,observer=null;const sizes=new Map();
-let cameraProc=null,camera='Canon no conectada',cameraMode='USB',connected=false,autoConnect=true,wifiIp='',scanBusy=false,lastAlert='',lastWifiScan=0,nextUsbAttempt=0,desiredMode='auto',autoTimer=null,nextWifiAttempt=0,pairGuid=randomUUID(),pairingAttempt=false,assistedWifi=false,assistedReceived=0,wifiCandidates=[],fastJpegMode=true;
+let cameraProc=null,camera='Canon no conectada',cameraMode='USB',connected=false,autoConnect=true,wifiIp='',scanBusy=false,lastAlert='',lastWifiScan=0,nextUsbAttempt=0,desiredMode='auto',autoTimer=null,nextWifiAttempt=0,pairGuid=randomUUID(),pairingAttempt=false,assistedWifi=false,assistedReceived=0,wifiCandidates=[],fastJpegMode=true,preferredCameraService='';
 const preferencesFile=path.join(app.getPath('userData'),'camera-settings.json');
 function canonUtilityRunning(){
  return new Promise(resolve=>{
@@ -18,8 +18,8 @@ function canonUtilityRunning(){
 }
 const diagnosticFile=path.join(app.getPath('userData'),'wifi-diagnostico.txt');
 function diagnostic(step,details=''){try{fs.mkdirSync(path.dirname(diagnosticFile),{recursive:true});fs.appendFileSync(diagnosticFile,new Date().toISOString()+' | '+step+' | '+String(details).slice(0,700)+'\n');}catch{}}
-try{const c=JSON.parse(fs.readFileSync(preferencesFile,'utf8'));wifiIp=String(c.wifiIp||'');autoConnect=c.autoConnect!==false;desiredMode=['auto','usb','wifi'].includes(c.mode)?c.mode:'auto';assistedWifi=c.assistedWifi===true;if(assistedWifi&&typeof c.assistedFolder==='string'&&c.assistedFolder.length<500)folder=c.assistedFolder;if(assistedWifi)autoConnect=false;fastJpegMode=c.fastJpegMode!==false;if(typeof c.pairGuid==='string'&&/^[0-9a-f-]{36}$/i.test(c.pairGuid))pairGuid=c.pairGuid;}catch{}
-function savePrefs(){try{fs.mkdirSync(path.dirname(preferencesFile),{recursive:true});fs.writeFileSync(preferencesFile,JSON.stringify({wifiIp,autoConnect,mode:desiredMode,fastJpegMode,pairGuid,assistedWifi,assistedFolder:assistedWifi?folder:''},null,2));}catch(e){console.error('Preferences',e.message);}}
+try{const c=JSON.parse(fs.readFileSync(preferencesFile,'utf8'));wifiIp=String(c.wifiIp||'');autoConnect=c.autoConnect!==false;desiredMode=['auto','usb','wifi'].includes(c.mode)?c.mode:'auto';assistedWifi=c.assistedWifi===true;if(assistedWifi&&typeof c.assistedFolder==='string'&&c.assistedFolder.length<500)folder=c.assistedFolder;if(assistedWifi)autoConnect=false;fastJpegMode=c.fastJpegMode!==false;preferredCameraService=typeof c.preferredCameraService==='string'?c.preferredCameraService.slice(0,100):'';if(typeof c.pairGuid==='string'&&/^[0-9a-f-]{36}$/i.test(c.pairGuid))pairGuid=c.pairGuid;}catch{}
+function savePrefs(){try{fs.mkdirSync(path.dirname(preferencesFile),{recursive:true});fs.writeFileSync(preferencesFile,JSON.stringify({wifiIp,autoConnect,mode:desiredMode,fastJpegMode,preferredCameraService,pairGuid,assistedWifi,assistedFolder:assistedWifi?folder:''},null,2));}catch(e){console.error('Preferences',e.message);}}
 function inform(message,kind='info'){if(lastAlert===message)return;lastAlert=message;for(const w of [main,projection])if(w&&!w.isDestroyed())w.webContents.send('camera-alert',{message,kind});if(Notification.isSupported()){try{new Notification({title:'Demi Tether Studio',body:message}).show();}catch{}}}
 function isPrivateIp(ip){const m=/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip);if(!m)return false;const a=m.slice(1).map(Number);return a.every(x=>x>=0&&x<=255)&&(a[0]===10||(a[0]===172&&a[1]>=16&&a[1]<=31)||(a[0]===192&&a[1]===168)||(a[0]===169&&a[1]===254));}
 async function discoverMdns(waitMs=6500){
@@ -80,10 +80,20 @@ async function discoverWifi(){
   wifiCandidates=[...merged.values()].map(x=>({ip:x.ip,source:[...new Set(x.sources)].join(' + '),name:x.name}));
   diagnostic('Dispositivos anunciados',JSON.stringify(wifiCandidates));
   broadcast();
+  // Prefer the actual Canon PTP/IP advertisement (not generic SSDP source IP).
+  // Match the remembered service instance to survive DHCP changes.
+  const ptp=wifiCandidates.filter(c=>c.source.includes('mDNS _ptp._tcp')&&
+    /^ICPO-WFTEOSSystemService/i.test(c.name));
+  const known=preferredCameraService&&ptp.find(c=>c.name===preferredCameraService);
+  const candidate=known||(ptp.length===1?ptp[0]:null);
+  if(candidate){
+    diagnostic('Canon PTP/IP preferida',candidate.ip+' · '+candidate.name);
+    return candidate.ip;
+  }
   if(wifiCandidates.length>1){
-   cameraStatus('Se detectaron '+wifiCandidates.length+' direcciones diferentes. Selecciona la cámara en la lista y pulsa Conectar a dirección elegida. No se probará una IP arbitraria.');
-   diagnostic('Asociación detenida por ambigüedad','Selecciona una IP en la interfaz; no se inició TCP PTP/IP.');
-   return null;
+    cameraStatus('Se detectaron varios dispositivos sin identificar la Canon PTP/IP. Selecciona el correcto en opciones avanzadas.');
+    diagnostic('Asociación detenida por ambigüedad','No se eligió dirección SSDP genérica automáticamente.');
+    return null;
   }
   const result=wifiCandidates[0]?.ip||(isPrivateIp(wifiIp)?wifiIp:null);
   diagnostic('Dirección candidata PTP/IP',result||'Sin anuncio ni IP guardada');
@@ -96,7 +106,7 @@ function connectWifi(ip){if(cameraProc||!isPrivateIp(ip))return view();const exe
  cameraMode='Wi-Fi';wifiIp=ip;savePrefs();cameraStatus((pairingAttempt?'Emparejando Demi con Canon':'Conectando por Wi-Fi')+' a '+ip+'...');
  startBridge(exe,[ip,folder,fastJpegMode?'jpeg-fast':'all-files'],'Wi-Fi');return view();}
 function startBridge(exe,args,mode){let partial='',lastBridgeError='';diagnostic('Conector '+mode+' iniciado',mode==='Wi-Fi'?args[0]:'USB');try{const p=spawn(exe,args,{windowsHide:true,stdio:['ignore','pipe','pipe'],env:mode==='Wi-Fi'?{...process.env,DEMI_CANON_PAIRING_GUID:pairGuid}:process.env});cameraProc=p;cameraMode=mode;
- p.stdout.on('data',chunk=>{partial+=chunk.toString();const lines=partial.split(/\r?\n/);partial=lines.pop();for(const line of lines){try{const e=JSON.parse(line);if(e.type==='status'){diagnostic('Estado '+mode,e.message);cameraStatus(e.message);if(/Canon (?:USB )?conectada por|Canon USB conectada/i.test(e.message)&&!connected){pairingAttempt=false;connected=true;inform('Canon conectada por '+mode,'success');}}if(e.type==='photo'){const photo=path.resolve(String(e.message||''));if(path.dirname(photo)===path.resolve(folder)&&supported.test(photo)){readyCameraPhotos.add(photo);diagnostic('Foto Wi-Fi lista',path.basename(photo));}scan();}if(e.type==='error'){lastBridgeError=e.message;diagnostic('Error '+mode,e.message);cameraStatus('Canon: '+e.message);}}catch{}}});
+ p.stdout.on('data',chunk=>{partial+=chunk.toString();const lines=partial.split(/\r?\n/);partial=lines.pop();for(const line of lines){try{const e=JSON.parse(line);if(e.type==='status'){diagnostic('Estado '+mode,e.message);cameraStatus(e.message);if(/Canon (?:USB )?conectada por|Canon USB conectada/i.test(e.message)&&!connected){pairingAttempt=false;connected=true;if(mode==='Wi-Fi'){const known=wifiCandidates.find(x=>x.ip===wifiIp&&x.source.includes('mDNS _ptp._tcp')&&/^ICPO-WFTEOSSystemService/i.test(x.name));if(known){preferredCameraService=known.name;diagnostic('Identidad Canon guardada',known.name);}desiredMode='wifi';autoConnect=true;savePrefs();}inform('Canon conectada por '+mode,'success');}}if(e.type==='photo'){const photo=path.resolve(String(e.message||''));if(path.dirname(photo)===path.resolve(folder)&&supported.test(photo)){readyCameraPhotos.add(photo);diagnostic('Foto Wi-Fi lista',path.basename(photo));}scan();}if(e.type==='error'){lastBridgeError=e.message;diagnostic('Error '+mode,e.message);cameraStatus('Canon: '+e.message);}}catch{}}});
  let errors='';p.stderr.on('data',d=>{const info=d.toString();errors=(errors+info).slice(-1200);if(mode==='Wi-Fi')for(const line of info.split(/\r?\n/)){if(line.trim())diagnostic('Traza PTP/IP',line.trim());}});
  p.on('error',e=>{if(cameraProc===p){cameraProc=null;cameraStatus('Error de conexión: '+e.message);}});
  p.on('exit',code=>{if(cameraProc===p){cameraProc=null;const was=connected;connected=false;cameraStatus(lastBridgeError?'Error '+mode+': '+lastBridgeError:'Cámara desconectada ('+mode+', código '+code+'). '+errors.slice(-130));diagnostic('Fin conector '+mode,'código '+code+'; '+lastBridgeError+' '+errors.slice(-300));if(was)inform('Canon desconectada ('+mode+')','warning');nextUsbAttempt=Date.now()+9000;if(mode==='Wi-Fi'&&!was){pairingAttempt=false;nextWifiAttempt=Date.now()+120000;diagnostic('Pausa tras fallo de emparejamiento','Se suspende autoconexión Wi-Fi por 120 segundos; botón Conectar Wi-Fi permite prueba manual.');}}});
