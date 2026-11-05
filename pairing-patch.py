@@ -21,5 +21,19 @@ new = '''internal PtpIpTransport(string host, int port = PtpIpPort, string? clie
     }'''
 if s.count(old) != 1:
     raise SystemExit("FC.SDK PtpIpTransport code changed; cannot safely apply pairing patch")
-p.write_text(s.replace(old,new),encoding="utf-8")
+s = s.replace(old,new)
+# Deterministic PTP/IP stage tracing, without printing the camera/client GUID.
+stages = [
+    ("await _commandClient.ConnectAsync(_host, _port, ct);", 'Console.Error.WriteLine("[PTP-IP] Command TCP connected");'),
+    ("await _commandStream.WriteAsync(initRequest, ct);", 'Console.Error.WriteLine("[PTP-IP] InitCommandRequest sent");'),
+    ("if (ackType is not PtpIpPacketType.InitCommandAck)", 'Console.Error.WriteLine("[PTP-IP] Reply to InitCommandRequest: " + ackType);'),
+    ("await _eventClient.ConnectAsync(_host, _port, ct);", 'Console.Error.WriteLine("[PTP-IP] Event TCP connected");'),
+    ("await _eventStream.WriteAsync(eventRequest, ct);", 'Console.Error.WriteLine("[PTP-IP] InitEventRequest sent");'),
+    ("if (eventAckType is not PtpIpPacketType.InitEventAck)", 'Console.Error.WriteLine("[PTP-IP] Reply to InitEventRequest: " + eventAckType);'),
+]
+for needle, statement in stages:
+    if s.count(needle) != 1:
+        raise SystemExit("FC.SDK stage tracing marker changed: " + needle)
+    s = s.replace(needle, needle + "\n        " + statement)
+p.write_text(s,encoding="utf-8")
 print("PTP/IP pairing now uses persistent GUID passed by Demi Tether Studio")
