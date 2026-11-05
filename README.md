@@ -213,5 +213,15 @@ La barra lateral solo muestra la cámara, estado, modo y botones Conectar/Descon
 Cuando la Canon registrada no esté anunciando el servicio PTP/IP correcto, se evita conectar a otro equipo solo por aparecer en SSDP. La conexión Wi-Fi y las funciones de transferencia existentes se mantienen. Verificar físicamente la reconexión al abrir Demi y reiniciar la Canon.
 
 
-## v0.8.7 — Cambio de marca a Demi Visor Studio
-La aplicación y el instalador se presentan como **Demi Visor Studio**. Se conserva intencionalmente el ID de aplicación `mx.demistudios.tether`, el nombre interno del paquete y la ruta de datos heredada `Demi Tether Studio` para no perder el GUID de emparejamiento Wi-Fi, las preferencias guardadas ni las fotografías anteriores. Los binarios auxiliares `DemiWifiBridge.exe` y `DemiCameraBridge.exe` conservan sus nombres internos para evitar incompatibilidades; la interfaz pública usa la nueva marca. Si en futuras versiones se desea cambiar también la ruta de fotos o el ID del instalador, debe implementarse una migración específica.
+## v0.8.7 — Nombre de instalador Demi Visor Studio
+Se actualizó inicialmente el nombre de producto y del instalador, pero permanecían etiquetas antiguas en la interfaz y el identificador de cliente Canon Wi-Fi.
+
+## v0.8.8 — Identidad completa Demi Visor Studio
+- Encabezado de la aplicación: **Demi Visor Studio**.
+- Registro de sesión Wi-Fi PTP/IP con Canon: el nombre de cliente transmitido ahora es **Demi Visor Studio**, en lugar de Demi Tether Studio.
+- Nombre del paquete Node/Electron: `demi-visor-studio`.
+- Carpeta de ajustes nueva: `%APPDATA%\\Demi Visor Studio`. Se copian automáticamente los ajustes y el diagnóstico anteriores cuando no existen todavía en la nueva ubicación, conservando el GUID de conexión Wi-Fi.
+- Carpeta de fotografías nuevas: `Imágenes\\Demi Visor Studio`; si ya hay una carpeta antigua y todavía no existe la nueva, se sigue utilizando la antigua para no ocultar fotografías.
+- El ID interno del instalador `mx.demistudios.tether` se mantiene para compatibilidad de actualizaciones; no aparece como nombre visible de la aplicación.
+- Los ejecutables auxiliares USB/Wi-Fi mantienen sus nombres técnicos para no romper rutas ni conexiones.
+- Si la Canon conserva el nombre de emparejamiento antiguo, usa **Opciones de cámara → Emparejar nueva cámara** para registrar el nuevo nombre. Confirma en la cámara cualquier solicitud de asociación. Requiere probar físicamente después de instalar.
