@@ -64,3 +64,6 @@ body{display:flex;flex-direction:column}
 .camera-toast.visible{opacity:1;transform:translateY(0)}
 .camera-toast.warning{background:#3b2c1c;border-color:#b7803c}
 .camera-toast.success{background:#163d33;border-color:#39a880}
+
+.wifi-assist{display:grid;gap:7px;padding:11px;border:1px solid #347e96;border-radius:11px;background:#102e3c;margin-bottom:7px}
+.wifi-assist strong{font-size:12px;color:#d5f6ff}.wifi-assist p{margin:0;color:#bad1df;font-size:11px;line-height:1.4}.wifi-assist .btn{width:100%;font-size:11px}.wifi-assist #wifi-assist-status{color:#83b7c6;overflow-wrap:anywhere}
