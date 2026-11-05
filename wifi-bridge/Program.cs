@@ -45,6 +45,8 @@ internal static class Program
            !System.Net.IPAddress.IsLoopback(parsed) && parsed.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
         { Emit("error","Dirección IP Wi-Fi inválida"); return 2; }
         var ip=args[0];
+        bool fastJpegMode=args.Length>=3&&args[2]=="jpeg-fast";
+        int skippedRaw=0;
         string output=Path.GetFullPath(args[1]);
         Directory.CreateDirectory(output);
         using var cts = new CancellationTokenSource();
@@ -67,6 +69,7 @@ internal static class Program
                 if(save!=EdsError.OK) Emit("error","No se pudo seleccionar guardar en tarjeta y PC ("+save+"). Se escucharán eventos disponibles.");
             } catch(Exception ex) { Emit("error","Destino de captura: "+ex.Message); }
             Emit("status","Canon conectada por Wi-Fi ("+ip+"). Recepción de nuevos disparos activa.");
+            Emit("status",fastJpegMode?"Modo rápido: solo JPEG completos al PC, RAW originales conservados en la tarjeta (Guardar en ambos).":"Modo completo: transferencia de JPEG y RAW al PC.");
             var last=DateTime.UtcNow;
             while(!cts.IsCancellationRequested)
             {
@@ -79,6 +82,26 @@ internal static class Program
                         if(string.IsNullOrWhiteSpace(name))name="Canon_"+DateTime.UtcNow.ToString("yyyyMMdd_HHmmssfff")+".jpg";
                         var ext=Path.GetExtension(name).ToUpperInvariant();
                         string unique=DateTime.UtcNow.ToString("yyyyMMdd_HHmmssfff")+"_"+name;
+                        if(fastJpegMode && (ext==".CR2"||ext==".CR3"))
+                        {
+                            // EOS camera stores RAW on its memory card via EdsSaveTo.Both.
+                            // Acknowledge host-side transfer without downloading the 30 MB file.
+                            // Do not delete, convert or overwrite the original on camera card.
+                            var rawComplete=await camera.TransferCompleteAsync(handle,cts.Token);
+                            if(rawComplete!=EdsError.OK) Emit("error","RAW en tarjeta: confirmación pendiente ("+rawComplete+").");
+                            else if(++skippedRaw<=3) Emit("status","RAW conservado en tarjeta; se omite descarga Wi-Fi para mostrar el JPEG antes.");
+                            continue;
+                        }
+                        if(fastJpegMode && name.StartsWith("Canon_",StringComparison.OrdinalIgnoreCase))
+                        {
+                            // CanonGetObjectInfo may fail for a RAW handle. Its legacy fallback
+                            // incorrectly named that 30 MB unknown payload *.jpg. In fast mode,
+                            // skip unknown full downloads rather than monopolize the link.
+                            var unknownComplete=await camera.TransferCompleteAsync(handle,cts.Token);
+                            if(unknownComplete!=EdsError.OK) Emit("error","Objeto sin nombre: confirmación pendiente ("+unknownComplete+").");
+                            else Emit("status","Objeto sin nombre válido omitido en modo rápido; se mantiene en tarjeta si Guardar en ambos está activo.");
+                            continue;
+                        }
                         if(ext==".CR2"||ext==".CR3")
                         {
                             var (err,thumb)=await camera.GetThumbAsync(handle,cts.Token);
