@@ -84,3 +84,10 @@ Se corrigió el fallo de diseño anterior: buscar solo TCP/15740 no equivale a d
 5. Una vez conectada, realizar tres fotos JPG de prueba y verificar galería y televisor.
 
 Fuentes: https://sg.canon/en/support/8203590200 ; https://cascable.se/help/troubleshooting/ ; https://github.com/JulianSchroden/camera_control_dart .
+
+
+## v0.7.2 — Err 11, descubrir anuncios Canon EOS con SSDP + mDNS
+- El menú EOS Utility de la 6D Mark II puede necesitar que el PC detecte los anuncios de descubrimiento Canon y confirme el emparejamiento. La app ahora escucha UDP 1900/SSDP, servicio `urn:schemas-canon-com:service:ICPO-WFTEOSSystemService:1`, y consulta con M-SEARCH, además de mDNS UDP 5353. Se filtra la procedencia de los anuncios a IPv4 de redes privadas y se valida el puerto TCP 15740 antes de iniciar la sesión.
+- Si no se detecta, el mensaje indica que no hubo anuncios y especifica los puertos de la red. No se simula que se haya autorizado un emparejamiento: solo se considera conectada después de una sesión de cámara abierta satisfactoriamente.
+- Manual Canon: https://gdlp01.c-wss.com/gds/2/0300027622/01/EOS_6D_Mark_II_Wi-Fi_Instruction_Manual_EN.pdf ; implementación documentada de descubrimiento SSDP: https://julianschroden.com/post/2023-05-10-pairing-and-initializing-a-ptp-ip-connection-with-a-canon-eos-camera/
+- **No se ha comprobado físicamente con esta 6D Mark II**. Si persiste Err 11, necesitamos observar el anuncio y el handshake para determinar qué etapa falta; la compilación únicamente confirma que el programa se genera.
