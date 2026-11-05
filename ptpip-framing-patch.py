@@ -35,7 +35,7 @@ replacement=r'''    private ushort _operationCode;
             byte[] request = new byte[18 + packet.Length - 12];
             BinaryPrimitives.WriteUInt32LittleEndian(request, (uint)request.Length);
             BinaryPrimitives.WriteUInt32LittleEndian(request.AsSpan(4), (uint)PtpIpPacketType.OperationRequest);
-            BinaryPrimitives.WriteUInt32LittleEndian(request.AsSpan(8), 1u); // no data / data in
+            BinaryPrimitives.WriteUInt32LittleEndian(request.AsSpan(8), code is 0x1016 or 0x9110 ? 2u : 1u); // data out for SetProp, otherwise data in/no data
             BinaryPrimitives.WriteUInt16LittleEndian(request.AsSpan(12), code);
             BinaryPrimitives.WriteUInt32LittleEndian(request.AsSpan(14), tx);
             packet.Slice(12).CopyTo(request.AsMemory(18));
