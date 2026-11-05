@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 internal static class Program
 {
@@ -43,16 +44,19 @@ internal static class Program
                 {
                     string filename="Canon_"+taken.dateTime+"_"+Path.GetFileNameWithoutExtension(taken.fileName)+".jpg";
                     try{DownloadPreview(item,Path.Combine(output,filename),taken.dateTime);}
-                    catch(Exception e){Emit("error","Vista previa RAW: "+e.Message);}
+                    catch(Exception e){Emit("error","Miniatura RAW de cámara no disponible: "+e.Message);}
+                    string rawPath=Download(item,"",true,taken.dateTime);
+                    if(!File.Exists(Path.Combine(output,filename)) && !ExtractRawPreview(rawPath,Path.Combine(output,filename),taken.dateTime))
+                        Emit("error","No se pudo generar JPEG de "+taken.fileName+"; RAW guardado sin cambios.");
                 }
-                Download(item,"",true,taken.dateTime);
+                else Download(item,"",true,taken.dateTime);
             }
         }
         catch(Exception ex) { Emit("error", "Transferencia: " + ex.Message); try { EDSDK.EdsDownloadCancel(item); }catch{} }
         finally { EDSDK.EdsRelease(item); }
         return 0;
     }
-    private static void Download(IntPtr item,string prefix="", bool transferRequest=true, uint cameraDate=0)
+    private static string Download(IntPtr item,string prefix="", bool transferRequest=true, uint cameraDate=0)
     {
         Check(EDSDK.EdsGetDirectoryItemInfo(item, out var info), "EdsGetDirectoryItemInfo");
         var original = prefix+Path.GetFileName(info.fileName);
@@ -73,6 +77,7 @@ internal static class Program
             Emit("photo",target);
         }
         finally { EDSDK.EdsRelease(stream); }
+        return target;
     }
 
     private static void PreserveDate(string file,uint cameraDate)
@@ -87,8 +92,46 @@ internal static class Program
         try {Check(EDSDK.EdsDownloadThumbnail(item,stream),"EdsDownloadThumbnail");}
         catch {try{File.Delete(target);}catch{} throw;}
         finally {EDSDK.EdsRelease(stream);}
+        if(!IsJpeg(target)) {try{File.Delete(target);}catch{} throw new Exception("Canon entregó miniatura no JPEG");}
         PreserveDate(target,cameraDate);
         Emit("photo",target);
+    }
+    private static bool IsJpeg(string file)
+    {
+        try {using var fs=File.OpenRead(file);return fs.Length>512&&fs.ReadByte()==255&&fs.ReadByte()==216;}
+        catch{return false;}
+    }
+    // Extrae el JPEG incrustado en CR2/CR3 sin alterar el original.
+    private static bool ExtractRawPreview(string rawPath,string target,uint date)
+    {
+        string exe=Path.Combine(AppContext.BaseDirectory,"exiftool.exe");
+        if(!File.Exists(exe)) {Emit("error","Falta herramienta JPEG RAW integrada (ExifTool).");return false;}
+        foreach(string tag in new[]{"JpgFromRaw","PreviewImage","OtherImage","ThumbnailImage"})
+        {
+            try
+            {
+                string temporary=target+".partial";
+                using(var process=new Process())
+                {
+                    process.StartInfo.FileName=exe;
+                    process.StartInfo.UseShellExecute=false;
+                    process.StartInfo.CreateNoWindow=true;
+                    process.StartInfo.RedirectStandardOutput=true;
+                    process.StartInfo.Arguments="-b -"+tag+" \""+rawPath.Replace("\"","")+"\"";
+                    if(!process.Start())continue;
+                    using(var dest=File.Create(temporary)){process.StandardOutput.BaseStream.CopyTo(dest);}
+                    if(!process.WaitForExit(15000)){process.Kill(true);Emit("error","Tiempo agotado extrayendo "+tag);continue;}
+                    if(process.ExitCode==0&&IsJpeg(temporary))
+                    {
+                        File.Move(temporary,target,true);
+                        PreserveDate(target,date);Emit("photo",target);return true;
+                    }
+                }
+                if(File.Exists(temporary))File.Delete(temporary);
+            }
+            catch(Exception ex){Emit("error","Extracción "+tag+": "+ex.Message);}
+        }
+        return false;
     }
     private static void CollectGallery(IntPtr parent,int depth)
     {
@@ -166,7 +209,20 @@ internal static class Program
                         else
                         {
                             // RAW: extraemos su vista JPEG. Para JPEG antiguas también aceleramos la galería.
-                            DownloadPreview(photo.item,target,photo.date);
+                            try {DownloadPreview(photo.item,target,photo.date);}
+                            catch(Exception thumbnailError)
+                            {
+                                Emit("status","Usando método alternativo para "+photo.name);
+                                if(photo.raw)
+                                {
+                                    string filename="Original_"+photo.date+"_"+photo.name;
+                                    string rawPath=Path.Combine(output,filename);
+                                    if(!File.Exists(rawPath))rawPath=Download(photo.item,"Original_"+photo.date+"_",false,photo.date);
+                                    if(!ExtractRawPreview(rawPath,target,photo.date))
+                                        throw new Exception("Sin vista JPEG incrustada: "+thumbnailError.Message);
+                                }
+                                else Download(photo.item,"Canon_"+photo.date+"_",false,photo.date);
+                            }
                         }
                     }
                     else PreserveDate(target,photo.date);
