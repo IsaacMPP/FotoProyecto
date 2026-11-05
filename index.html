@@ -1,10 +1,36 @@
 <!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Demi Tether Studio</title><link rel="stylesheet" href="style.css"></head><body>
-<header class="topbar"><div class="brand"><div class="brand-icon">✦</div><div><h1>Demi <span>Tether</span> Studio</h1><p>El momento, en grande.</p></div></div><div class="top-actions"><button id="workspace-fullscreen" class="btn btn-soft btn-sm" title="Pantalla completa de trabajo (F11)">⛶ Ampliar vista</button><span class="version">v0.8.5</span><span class="live-dot" id="connection-dot"></span><span id="connection-short">Cámara sin conectar</span></div></header>
+<header class="topbar"><div class="brand"><div class="brand-icon">✦</div><div><h1>Demi <span>Tether</span> Studio</h1><p>El momento, en grande.</p></div></div><div class="top-actions"><button id="workspace-fullscreen" class="btn btn-soft btn-sm" title="Pantalla completa de trabajo (F11)">⛶ Ampliar vista</button><span class="version">v0.8.6</span><span class="live-dot" id="connection-dot"></span><span id="connection-short">Cámara sin conectar</span></div></header>
 <main class="layout">
 <aside class="sidebar">
 <div class="sidebar-heading">ESPACIO DE TRABAJO</div>
 <div class="panel"><div class="panel-header"><span class="section-icon">◈</span><h2>Sesión fotográfica</h2></div><div class="folder" id="folder">Cargando...</div><button class="btn btn-soft" id="choose">▤ &nbsp; Cambiar carpeta</button></div>
-<div class="panel"><div class="panel-header"><span class="section-icon">◎</span><h2>Canon 6D Mark II</h2></div><div class="status" id="camera">Esperando conexión USB...</div><div class="connection-choices"><div class="wifi-assist"><strong>Wi-Fi para sesiones · Canon EOS Utility</strong><p>Utiliza la conexión inalámbrica oficial de Canon y proyecta las fotos en Demi Tether Studio.</p><button id="wifi-assist" class="btn btn-primary">▣ Usar fotos recibidas por Wi-Fi</button><button id="wifi-assist-off" class="btn btn-soft">Finalizar modo asistido</button><p id="wifi-assist-status" class="field-label"></p></div><label class="field-label" for="connection-mode">Conexión preferida</label><select id="connection-mode"><option value="auto">Automática · USB o Wi-Fi</option><option value="usb">Solo USB</option><option value="wifi">Solo Wi-Fi</option></select><label class="switch-line"><input id="auto-connect" type="checkbox" checked><span>Conectar y reconectar automáticamente</span></label><div class="wifi-speed-setting"><label class="switch-line"><input id="fast-jpeg" type="checkbox" checked><span><strong>JPEG rápido al PC</strong> · RAW en tarjeta Canon</span></label><p>Evita descargar RAW de 30 MB durante la sesión. Para ver fotos en segundos usa RAW+JPEG. El ajuste se aplica al reconectar.</p></div><label class="field-label" for="wifi-ip">IP de la Canon (opcional)</label><input class="wifi-input" id="wifi-ip" placeholder="Ej. 192.168.1.20" autocomplete="off" spellcheck="false"><button id="wifi-pair" class="btn btn-primary">◈ Emparejar Demi con Canon (sin EOS Utility)</button><label class="field-label" for="wifi-candidates">Dispositivos detectados</label><select id="wifi-candidates"><option value="">Buscar primero para mostrar las direcciones</option></select><button id="wifi-choose" class="btn btn-soft">Conectar a dirección elegida</button><button id="wifi-search" class="btn btn-soft">⌕ Buscar cámara Wi-Fi</button><button id="wifi-connect" class="btn btn-soft">◉ Conectar por Wi-Fi</button><button id="wifi-diagnostic" class="btn btn-soft">☷ Abrir diagnóstico Wi-Fi</button></div><div class="button-stack"><button class="btn btn-primary" id="connect">◉ &nbsp; Conectar cámara</button><button class="btn btn-soft" id="disconnect">Desconectar</button></div></div>
+<div class="panel camera-panel">
+ <div class="panel-header"><span class="section-icon">◎</span><h2>Mi cámara</h2><span class="camera-live-status" id="camera-live">Sin conectar</span></div>
+ <div class="status" id="camera">Canon no conectada</div>
+ <label class="field-label" for="connection-mode">Tipo de conexión</label>
+ <select id="connection-mode"><option value="wifi">Wi-Fi</option><option value="usb">USB</option><option value="auto">Automática</option></select>
+ <div class="camera-primary-actions"><button class="btn btn-primary" id="connect">◉ Conectar cámara</button><button class="btn btn-soft" id="disconnect">Desconectar</button></div>
+ <details class="camera-settings" id="camera-settings"><summary>⚙ Opciones de cámara</summary>
+ <div class="settings-content">
+ <label class="switch-line"><input id="auto-connect" type="checkbox" checked><span>Conectar automáticamente</span></label>
+ <label class="switch-line"><input id="fast-jpeg" type="checkbox" checked><span>JPEG rápido · RAW en tarjeta</span></label>
+ <div class="settings-divider">Herramientas de conexión Wi-Fi</div>
+ <button id="wifi-search" class="btn btn-soft">Buscar dispositivos</button>
+ <label class="field-label" for="wifi-candidates">Dispositivos detectados</label>
+ <select id="wifi-candidates"><option value="">Sin dispositivos detectados</option></select>
+ <button id="wifi-choose" class="btn btn-soft">Conectar al seleccionado</button>
+ <label class="field-label" for="wifi-ip">Dirección IP manual</label>
+ <input class="wifi-input" id="wifi-ip" placeholder="192.168.1.60" autocomplete="off" spellcheck="false">
+ <button id="wifi-connect" class="btn btn-soft">Conectar por IP</button>
+ <button id="wifi-pair" class="btn btn-soft">Emparejar nueva cámara</button>
+ <button id="wifi-diagnostic" class="btn btn-soft">Abrir diagnóstico Wi-Fi</button>
+ <details class="legacy-options"><summary>Modo de compatibilidad EOS Utility</summary>
+ <div class="legacy-content"><p>Usar únicamente si el modo Wi-Fi nativo no funciona.</p>
+ <button id="wifi-assist" class="btn btn-soft">Elegir carpeta de EOS Utility</button>
+ <button id="wifi-assist-off" class="btn btn-soft">Desactivar modo asistido</button>
+ <p id="wifi-assist-status" class="field-label"></p></div></details>
+ </div></details>
+ </div>
 <div class="panel"><div class="panel-header"><span class="section-icon">▣</span><h2>Pantalla del cliente</h2></div><label for="displays" class="field-label">Televisor o monitor</label><select id="displays"></select><button class="btn btn-primary" id="open">↗ &nbsp; Proyectar fotografía</button><button class="btn btn-soft" id="close">Cerrar proyección</button><label class="switch-line"><input id="auto" type="checkbox" checked><span>Mostrar siempre la última foto</span></label></div>
 <div class="sidebar-foot">Conservamos la proporción original de las fotos.<div class="key-guide"><kbd>ESC</kbd> sale de pantalla completa &nbsp; <kbd>←</kbd><kbd>→</kbd> navegan</div></div>
 </aside>
