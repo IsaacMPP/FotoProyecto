@@ -30,6 +30,7 @@ jobs:
           git -C fc-sdk checkout 0800943d2d4aaaa8ffc5da11b5ce57bfed9614a7
           python pairing-patch.py
           python ptpip-framing-patch.py
+          python wifi-startup-patch.py
       - name: Compilar puente Wi-Fi PTP/IP
         run: dotnet publish wifi-bridge/DemiWifiBridge.csproj -c Release -r win-x64 --self-contained true -o wifi-bridge/publish
       - name: Incluir ExifTool para vistas previas RAW (CR2/CR3)
