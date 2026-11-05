@@ -30,3 +30,5 @@ $('auto-connect').onchange=e=>window.demi.configureCamera({autoConnect:e.target.
 $('wifi-ip').onchange=e=>window.demi.configureCamera({wifiIp:e.target.value.trim()});
 $('wifi-search').onclick=()=>window.demi.searchWifi();
 $('wifi-connect').onclick=async()=>{const ip=$('wifi-ip').value.trim();const result=await window.demi.connectWifi(ip);if(result?.error){toast.textContent=result.error;toast.className='camera-toast visible warning';}};
+
+$('wifi-diagnostic').onclick=()=>window.demi.openWifiDiagnostic();
