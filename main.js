@@ -155,8 +155,15 @@ async function getThumbnail(id){
  const cacheKey=item.file+'|'+item.mtime;
  if(thumbnailCache.has(cacheKey))return thumbnailCache.get(cacheKey);
  try{
-  const image=await nativeImage.createThumbnailFromPath(item.file,{size:{width:176,height:144}});
-  if(image.isEmpty())return null;
+  // Windows Shell thumbnail providers may return nothing for photos
+  // transferred by Canon, even when the original JPEG is perfectly valid.
+  // Decode a small thumbnail from the file itself as a reliable fallback.
+  let image=await nativeImage.createThumbnailFromPath(item.file,{size:{width:176,height:144}});
+  if(image.isEmpty()){
+   const full=nativeImage.createFromPath(item.file);
+   if(full.isEmpty())return null;
+   image=full.resize({width:176,height:144,quality:'good'});
+  }
   const result=image.toDataURL();
   thumbnailCache.set(cacheKey,result);
   if(thumbnailCache.size>120)thumbnailCache.delete(thumbnailCache.keys().next().value);
