@@ -6,7 +6,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "check": "node --check main.js && node --check preload.js && node --check renderer.js && node --check projector.js",
+    "check": "node --check main.js && node --check preload.js && node --check renderer.js && node --check projector.js && node --check photo-grouping.js && node --test photo-grouping.test.js",
     "dist:win": "electron-builder --win nsis portable --x64 --publish never"
   },
   "devDependencies": {
@@ -19,6 +19,7 @@
     "asar": true,
     "files": [
       "main.js",
+      "photo-grouping.js",
       "preload.js",
       "renderer.js",
       "projector.js",
