@@ -97,3 +97,41 @@ body{display:flex;flex-direction:column}
 .legacy-content .btn{padding:8px;font-size:11px}
 .sidebar{gap:11px}
 .sidebar .panel{padding:13px}
+
+
+/* Demi Visor Studio 0.9 — presentation-only redesign; Canon bridges unchanged */
+:root{--bg:#090d17;--panel:#111a2b;--line:#2c344b;--fg:#f7f4fb;--muted:#a4aabe;--cyan:#f644ab;--cyan2:#c52085;--yellow:#f2b5d7}
+body{background:#090d17}.topbar{background:linear-gradient(105deg,#170d24,#0e1423 58%,#0b101d);border-bottom:1px solid #442442}
+.brand-icon{background:linear-gradient(135deg,#e4249b,#9c2eaa);color:#fff;box-shadow:0 0 22px #ed299644}
+.brand h1 span{color:#f544a9}.version{background:#302039;color:#ffc6e7}
+.layout.modern-layout{grid-template-columns:clamp(204px,16vw,260px) minmax(360px,1fr) clamp(205px,20vw,300px)}
+.sidebar{background:linear-gradient(165deg,#101629,#0a1221);border-right:1px solid #35293d}
+.sidebar-tab{padding:11px 13px;border-radius:10px;font-size:12px;color:#b9c4d7}
+.sidebar-tab.active{background:linear-gradient(95deg,#7f1c68,#a61b77);color:white;font-weight:700}
+.panel{background:#141b2d;border-color:#323348}.section-icon,.empty-icon{color:#f24caa}
+.btn-primary{background:linear-gradient(110deg,#d62b98,#8e2faf)}
+.btn-soft{background:#25273d;border-color:#444058}
+.workspace{background:radial-gradient(circle at 50% 25%,#171a31,#0a0e1b 72%);padding:14px 14px 10px;gap:9px}
+.workspace-title{font-size:18px}.count-pill{background:#28243b;color:#f0badb}
+.photo-stage{border-color:#30273a;background:#05050b;border-radius:15px}
+.photo-stage img{transform-origin:center center;will-change:transform;backface-visibility:hidden}
+.stage-top-hint{position:absolute;top:14px;left:14px;border-radius:24px;background:#080915ae;padding:7px 10px;font-size:10px;font-weight:700;letter-spacing:.7px;color:#e3cddd;z-index:2;pointer-events:none}
+.zoom-badge{background:#211728e0;border-color:#783e6d;color:#ffd7ef}
+.stage-label{background:#120e1ed9;border-color:#543450;color:#f8e2f0}
+.bottom-toolbar{min-height:44px;background:#17192b;padding:8px 10px;border-radius:12px;border:1px solid #2d2c42}
+.zoom-actions input{accent-color:#ef399d;width:min(12vw,135px)}.btn-icon{background:#24243e;border-color:#3e3653}
+.viewer-status{display:flex;gap:9px;align-items:center;border:1px solid #2c2a40;border-radius:10px;background:#121b2b;padding:9px 12px;color:#bfd1e0;font-size:11px}
+.viewer-status .status-indicator{color:#58d58e}.viewer-status #viewer-current{margin-left:auto;color:#f0aad2;max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gallery-panel{display:flex;min-height:0;flex-direction:column;gap:12px;padding:15px 11px;background:#0c1526;border-left:1px solid #343047}
+.gallery-head{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#f2ecf5;font-weight:800;font-size:12px;letter-spacing:.5px;padding:8px 5px}
+.gallery-head strong{font-size:12px;border-radius:20px;background:#27243c;color:#fcaedb;padding:5px 9px}
+.gallery-panel .thumbs{min-height:0;height:auto;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:8px;flex:1;padding:2px 3px 12px;scrollbar-width:thin}
+.gallery-panel .thumb{display:flex;align-items:center;gap:9px;width:100%;min-width:0;max-width:none;flex-shrink:0;text-align:left;padding:8px;background:#141f34;border-color:#2b3550;border-radius:11px;white-space:normal}
+.gallery-panel .thumb.chosen{background:#352039;border:1px solid #ed409d;box-shadow:0 0 0 1px #ed409d66}
+.thumb-image{height:68px;width:73px;flex-shrink:0;object-fit:cover;object-position:center;background:#070b13;border-radius:7px}
+.thumb-meta{min-width:0;display:flex;flex-direction:column;gap:5px}.thumb-title{font-size:11px;color:#f3edf6;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.thumb-time{font-size:10px;color:#9babc4}
+.gallery-foot{font-size:10px;color:#8493aa;line-height:1.5;border-top:1px solid #303149;padding:11px 5px}
+.projector .waiting span{color:#f644ab}
+.photo-stage.zoomed{cursor:grab}.photo-stage.dragging{cursor:grabbing}
+@media(max-width:980px){.layout.modern-layout{grid-template-columns:205px minmax(260px,1fr) 185px}.gallery-panel{padding:8px 6px}.thumb-image{width:50px;height:54px}.thumb-meta{gap:3px}.stage-top-hint{display:none}}
+@media(max-width:760px){.layout.modern-layout{grid-template-columns:175px minmax(240px,1fr)}.gallery-panel{display:none}.sidebar{padding:7px}.panel{padding:9px}.viewer-status{font-size:10px}}
