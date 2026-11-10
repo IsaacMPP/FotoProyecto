@@ -3,7 +3,7 @@
 // Never delete, rename or alter files. Keep a real file path as the selected ID.
 const path=require('node:path');
 function identity(file){
- const filename=path.basename(file);
+ const filename=path.win32.basename(file);
  let stem=path.parse(filename).name;
  let generated=false,preview=false;
  // Canon USB historical RAW embedded preview: Canon_<capture epoch>_<camera name>.
