@@ -143,7 +143,7 @@ $('zoom-range').oninput=e=>changeZoom(Number(e.target.value)/100);
 stage.addEventListener('wheel',e=>{
  if(!prevId)return;
  e.preventDefault();
- const step=e.ctrlKey?.10:.20;
+ const step=e.ctrlKey ? 0.10 : 0.20;
  changeZoom(currentZoom+(e.deltaY<0?step:-step),e.clientX,e.clientY);
 },{passive:false});
 stage.addEventListener('dblclick',e=>{
