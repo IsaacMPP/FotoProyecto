@@ -1,8 +1,8 @@
 <!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Demi Visor Studio</title><link rel="stylesheet" href="style.css"></head><body>
-<header class="topbar"><div class="brand"><div class="brand-icon">✦</div><div><h1>Demi <span>Visor</span> Studio</h1><p>El momento, en grande.</p></div></div><div class="top-actions"><button id="workspace-fullscreen" class="btn btn-soft btn-sm" title="Pantalla completa de trabajo (F11)">⛶ Ampliar vista</button><span class="version">v0.8.7</span><span class="live-dot" id="connection-dot"></span><span id="connection-short">Cámara sin conectar</span></div></header>
-<main class="layout">
+<header class="topbar"><div class="brand"><div class="brand-icon">✦</div><div><h1>Demi <span>Visor</span> Studio</h1><p>El momento, en grande.</p></div></div><div class="top-actions"><button id="workspace-fullscreen" class="btn btn-soft btn-sm" title="Pantalla completa de trabajo (F11)">⛶ Ampliar vista</button><span class="version">v0.9.0 · BETA</span><span class="live-dot" id="connection-dot"></span><span id="connection-short">Cámara sin conectar</span></div></header>
+<main class="layout modern-layout">
 <aside class="sidebar">
-<div class="sidebar-heading">ESPACIO DE TRABAJO</div>
+<div class="sidebar-heading">CONTROL DE ESTUDIO</div><div class="sidebar-tab active">⌂ &nbsp; Visor en vivo</div><div class="sidebar-tab">▣ &nbsp; Cámara y sesión</div>
 <div class="panel"><div class="panel-header"><span class="section-icon">◈</span><h2>Sesión fotográfica</h2></div><div class="folder" id="folder">Cargando...</div><button class="btn btn-soft" id="choose">▤ &nbsp; Cambiar carpeta</button></div>
 <div class="panel camera-panel">
  <div class="panel-header"><span class="section-icon">◎</span><h2>Mi cámara</h2><span class="camera-live-status" id="camera-live">Sin conectar</span></div>
@@ -13,7 +13,7 @@
  <details class="camera-settings" id="camera-settings"><summary>⚙ Opciones de cámara</summary>
  <div class="settings-content">
  <label class="switch-line"><input id="auto-connect" type="checkbox" checked><span>Conectar automáticamente</span></label>
- <label class="switch-line"><input id="fast-jpeg" type="checkbox" checked><span>JPEG rápido · RAW en tarjeta</span></label>
+ <label class="switch-line"><input id="fast-jpeg" type="checkbox" checked><span>Priorizar JPEG rápido por Wi-Fi</span></label><p class="field-label">USB conserva su recepción probada. RAW + JPEG pueden guardarse en la tarjeta; la transferencia depende de la cámara.</p>
  <div class="settings-divider">Herramientas de conexión Wi-Fi</div>
  <button id="wifi-search" class="btn btn-soft">Buscar dispositivos</button>
  <label class="field-label" for="wifi-candidates">Dispositivos detectados</label>
@@ -36,7 +36,13 @@
 </aside>
 <section class="workspace">
 <div class="workspace-top"><div><p class="eyebrow">VISTA DE LA SESIÓN</p><h2 class="workspace-title">Tus fotografías <span class="count-pill" id="counter">0 fotografías</span></h2></div><div class="nav-actions"><button class="btn btn-soft" id="prev" title="Anterior">←</button><button class="btn btn-soft" id="latest" title="Ir a la última fotografía">Última foto</button><button class="btn btn-soft" id="next" title="Siguiente">→</button></div></div>
-<div class="photo-stage" id="stage"><img id="preview" alt="Fotografía seleccionada"><div class="empty-state" id="empty"><div class="empty-icon">▧</div><h3>La magia empieza con una foto</h3><p>Conecta tu Canon o abre una carpeta para comenzar.</p></div><div class="stage-label" id="file"></div><div class="zoom-badge" id="zoom-level">100%</div></div>
-<div class="bottom-toolbar"><div class="zoom-actions"><span class="tool-title">ZOOM</span><button class="btn btn-icon" id="zoom-out" title="Alejar">−</button><input id="zoom-range" aria-label="Nivel de zoom" type="range" min="100" max="600" value="100" step="10"><button class="btn btn-icon" id="zoom-in" title="Acercar">+</button><button class="btn btn-soft btn-sm" id="zoom-reset">Ajustar</button></div><div class="tool-hint">Pellizca en el touchpad, usa Ctrl + rueda o arrastra para desplazarte</div></div>
-<div class="filmstrip"><div class="filmstrip-label">GALERÍA RECIENTE</div><div class="thumbs" id="thumbs"></div></div>
-</section></main><div id="camera-toast" class="camera-toast" role="status" aria-live="polite"></div><script src="renderer.js"></script></body></html>
+<div class="photo-stage" id="stage"><img id="preview" draggable="false" alt="Fotografía seleccionada"><div class="stage-top-hint">ARRASTRA PARA EXPLORAR · RUEDA PARA ZOOM</div><div class="empty-state" id="empty"><div class="empty-icon">▧</div><h3>La magia empieza con una foto</h3><p>Conecta tu Canon o abre una carpeta para comenzar.</p></div><div class="stage-label" id="file"></div><div class="zoom-badge" id="zoom-level">100%</div></div>
+<div class="bottom-toolbar"><div class="zoom-actions"><span class="tool-title">ZOOM</span><button class="btn btn-icon" id="zoom-out" title="Alejar">−</button><input id="zoom-range" aria-label="Nivel de zoom" type="range" min="100" max="600" value="100" step="10"><button class="btn btn-icon" id="zoom-in" title="Acercar">+</button><button class="btn btn-soft btn-sm" id="zoom-reset">Ajustar</button><button class="btn btn-soft btn-sm" id="zoom-actual" title="Escala 1:1">1:1</button></div><div class="tool-hint">Pellizca en el touchpad, usa Ctrl + rueda o arrastra para desplazarte</div></div>
+<div class="viewer-status"><span class="status-indicator">●</span> Recepción automática activa <span id="viewer-current">Esperando fotografía…</span></div>
+</section>
+<aside class="gallery-panel" aria-label="Fotografías de la sesión">
+  <div class="gallery-head"><span>ÚLTIMAS FOTOGRAFÍAS</span><strong id="gallery-count">0</strong></div>
+  <div class="thumbs" id="thumbs"></div>
+  <div class="gallery-foot">Selecciona una foto para inspeccionarla. La Canon puede continuar disparando.</div>
+</aside>
+</main><div id="camera-toast" class="camera-toast" role="status" aria-live="polite"></div><script src="renderer.js"></script></body></html>
