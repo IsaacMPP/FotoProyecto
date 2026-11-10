@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('demi',{
  photo:(id)=>ipcRenderer.invoke('photo',id),
  setZoom:(value)=>ipcRenderer.invoke('zoom-set',value),
  setPan:(x,y)=>ipcRenderer.invoke('pan-set',x,y),
+ setViewTransform:(zoom,x,y)=>ipcRenderer.invoke('view-transform',zoom,x,y),
  fullscreen:()=>ipcRenderer.invoke('project-fullscreen'),
  onState:(cb)=>{const fn=(_e,s)=>cb(s);ipcRenderer.on('state-changed',fn);return()=>ipcRenderer.removeListener('state-changed',fn)}
 });
