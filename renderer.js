@@ -23,14 +23,15 @@ function pumpThumbnails(){
     if(!url||!img.isConnected||img.dataset.photoId!==id)return;
     // Let Chromium decode the JPEG itself; it is the same trusted source as
     // the large viewer, avoiding Windows-generated black or empty thumbnails.
-    img.src=url;
-    img.onload=()=>{if(img.isConnected)img.classList.add('thumb-ready');};
-    img.onerror=()=>{
-     if(!img.isConnected)return;
-     img.classList.add('thumb-error');
-     img.alt='Vista previa no disponible';
-     console.warn('Demi: no se pudo mostrar miniatura',id);
-    };
+    await new Promise(resolve=>{
+     img.onload=()=>{if(img.isConnected)img.classList.add('thumb-ready');resolve();};
+     img.onerror=()=>{
+      if(img.isConnected){img.classList.add('thumb-error');img.alt='Vista previa no disponible';}
+      console.warn('Demi: no se pudo mostrar miniatura',id);
+      resolve();
+     };
+     img.src=url;
+    });
    }catch(error){
     if(img.isConnected){img.classList.add('thumb-error');img.alt='Vista previa no disponible';}
     console.warn('Demi: error cargando miniatura',error);
