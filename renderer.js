@@ -3,18 +3,34 @@ const $=id=>document.getElementById(id);
 let prevId='',stamp=0,currentZoom=1,currentPanX=0,currentPanY=0,photoFingerprint='',galleryFingerprint='',dragging=false;
 const preview=$('preview'),stage=$('stage');
 const thumbCache=new Map();
+// Load only visible thumbnails and fall back to the same trusted photo
+// protocol used by the main viewer if Windows cannot generate a preview.
+async function setThumbnail(img,id){
+ if(!img.isConnected||img.dataset.photoId!==id)return;
+ const fallback=async()=>{
+  const url=await window.demi.photo(id);
+  if(url&&img.isConnected&&img.dataset.photoId===id){
+   img.onerror=null;
+   img.src=url;
+  }
+ };
+ try{
+  const url=await window.demi.thumbnail(id);
+  if(!img.isConnected||img.dataset.photoId!==id)return;
+  if(!url)return void fallback();
+  img.onerror=()=>{void fallback();};
+  img.onload=()=>{img.classList.add('thumb-ready');};
+  img.src=url;
+ }catch{await fallback();}
+}
 const thumbObserver=new IntersectionObserver(entries=>{
  for(const entry of entries){
   if(!entry.isIntersecting)continue;
-  thumbObserver.unobserve(entry.target);
-  const img=entry.target,pid=img.dataset.photoId;
-  if(!pid)return;
-  void window.demi.thumbnail(pid).then(url=>{
-   if(url&&img.isConnected)img.src=url;
-  }).catch(()=>{});
+  const img=entry.target,id=img.dataset.photoId;
+  thumbObserver.unobserve(img);
+  if(id)void setThumbnail(img,id);
  }
 },{root:$('thumbs'),rootMargin:'120px'});
-
 let pendingTransform=null,transformFrame=0;
 function applyTransform(){
  preview.style.transform='translate('+currentPanX+'%,'+currentPanY+'%) scale('+currentZoom+')';
