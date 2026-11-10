@@ -3,42 +3,34 @@ const $=id=>document.getElementById(id);
 let prevId='',stamp=0,currentZoom=1,currentPanX=0,currentPanY=0,photoFingerprint='',galleryFingerprint='',dragging=false;
 const preview=$('preview'),stage=$('stage');
 const thumbCache=new Map();
-// The same demiphoto protocol successfully used by the main preview is the
-// authoritative image source. Electron/Windows Shell thumbnails are optional;
-// never leave the gallery blank if thumbnail creation fails.
-let thumbnailQueue=[],thumbnailActive=0;
-const MAX_THUMBNAIL_LOADS=3;
-function enqueueThumbnail(img,id){
- thumbnailQueue.push({img,id});
- pumpThumbnails();
-}
-function pumpThumbnails(){
- while(thumbnailActive<MAX_THUMBNAIL_LOADS && thumbnailQueue.length){
-  const {img,id}=thumbnailQueue.shift();
-  if(!img.isConnected||img.dataset.photoId!==id)continue;
-  thumbnailActive++;
-  (async()=>{
-   try{
-    const url=await window.demi.photo(id);
-    if(!url||!img.isConnected||img.dataset.photoId!==id)return;
-    // Let Chromium decode the JPEG itself; it is the same trusted source as
-    // the large viewer, avoiding Windows-generated black or empty thumbnails.
-    await new Promise(resolve=>{
-     img.onload=()=>{if(img.isConnected)img.classList.add('thumb-ready');resolve();};
-     img.onerror=()=>{
-      if(img.isConnected){img.classList.add('thumb-error');img.alt='Vista previa no disponible';}
-      console.warn('Demi: no se pudo mostrar miniatura',id);
-      resolve();
-     };
-     img.src=url;
-    });
-   }catch(error){
-    if(img.isConnected){img.classList.add('thumb-error');img.alt='Vista previa no disponible';}
-    console.warn('Demi: error cargando miniatura',error);
-   }
-  })().finally(()=>{thumbnailActive--;pumpThumbnails();});
+// The main photo viewer already proves this URL works. Use the identical
+// demiphoto URL for gallery photos, rather than Windows Shell thumbnails.
+// Only request visible gallery images, so large JPEGs do not flood I/O.
+async function loadVisibleThumbnail(img,id){
+ if(!img.isConnected||img.dataset.photoId!==id)return;
+ try{
+  const url=await window.demi.photo(id);
+  if(!url||!img.isConnected||img.dataset.photoId!==id)return;
+  img.onload=()=>{img.classList.add('thumb-ready');};
+  img.onerror=()=>{
+   img.classList.add('thumb-error');
+   img.alt='Vista previa no disponible';
+   console.warn('No se pudo abrir JPG en galería:',id);
+  };
+  img.src=url;
+ }catch(error){
+  img.classList.add('thumb-error');
+  console.warn('Error obteniendo JPG en galería:',error);
  }
 }
+const thumbObserver=new IntersectionObserver(entries=>{
+ for(const entry of entries){
+  if(!entry.isIntersecting)continue;
+  const img=entry.target,id=img.dataset.photoId;
+  thumbObserver.unobserve(img);
+  if(id)void loadVisibleThumbnail(img,id);
+ }
+},{root:null,rootMargin:'150px'});
 let pendingTransform=null,transformFrame=0;
 function applyTransform(){
  preview.style.transform='translate('+currentPanX+'%,'+currentPanY+'%) scale('+currentZoom+')';
@@ -81,7 +73,7 @@ function refreshGallery(photos,selectedId){
  if(fingerprint!==galleryFingerprint){
   galleryFingerprint=fingerprint;
   const box=$('thumbs');
-  thumbnailQueue=[];
+  for(const img of box.querySelectorAll('.thumb-image'))thumbObserver.unobserve(img);
   box.replaceChildren();
   for(const p of photos.slice(-40).reverse()){
    const b=document.createElement('button');b.type='button';b.className='thumb';b.dataset.id=p.id;
@@ -93,7 +85,7 @@ function refreshGallery(photos,selectedId){
    meta.append(title,when);b.append(img,meta);
    b.onclick=()=>{const index=lastPhotos.findIndex(x=>x.id===p.id);if(index>=0)void window.demi.navigate(index-lastPosition);};
    box.append(b);
-   enqueueThumbnail(img,p.id);
+   thumbObserver.observe(img);
   }
  }
  for(const b of $('thumbs').querySelectorAll('.thumb'))b.classList.toggle('chosen',b.dataset.id===selectedId);
