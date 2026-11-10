@@ -3,34 +3,41 @@ const $=id=>document.getElementById(id);
 let prevId='',stamp=0,currentZoom=1,currentPanX=0,currentPanY=0,photoFingerprint='',galleryFingerprint='',dragging=false;
 const preview=$('preview'),stage=$('stage');
 const thumbCache=new Map();
-// Load only visible thumbnails and fall back to the same trusted photo
-// protocol used by the main viewer if Windows cannot generate a preview.
-async function setThumbnail(img,id){
- if(!img.isConnected||img.dataset.photoId!==id)return;
- const fallback=async()=>{
-  const url=await window.demi.photo(id);
-  if(url&&img.isConnected&&img.dataset.photoId===id){
-   img.onerror=null;
-   img.src=url;
-  }
- };
- try{
-  const url=await window.demi.thumbnail(id);
-  if(!img.isConnected||img.dataset.photoId!==id)return;
-  if(!url)return void fallback();
-  img.onerror=()=>{void fallback();};
-  img.onload=()=>{img.classList.add('thumb-ready');};
-  img.src=url;
- }catch{await fallback();}
+// The same demiphoto protocol successfully used by the main preview is the
+// authoritative image source. Electron/Windows Shell thumbnails are optional;
+// never leave the gallery blank if thumbnail creation fails.
+let thumbnailQueue=[],thumbnailActive=0;
+const MAX_THUMBNAIL_LOADS=3;
+function enqueueThumbnail(img,id){
+ thumbnailQueue.push({img,id});
+ pumpThumbnails();
 }
-const thumbObserver=new IntersectionObserver(entries=>{
- for(const entry of entries){
-  if(!entry.isIntersecting)continue;
-  const img=entry.target,id=img.dataset.photoId;
-  thumbObserver.unobserve(img);
-  if(id)void setThumbnail(img,id);
+function pumpThumbnails(){
+ while(thumbnailActive<MAX_THUMBNAIL_LOADS && thumbnailQueue.length){
+  const {img,id}=thumbnailQueue.shift();
+  if(!img.isConnected||img.dataset.photoId!==id)continue;
+  thumbnailActive++;
+  (async()=>{
+   try{
+    const url=await window.demi.photo(id);
+    if(!url||!img.isConnected||img.dataset.photoId!==id)return;
+    // Let Chromium decode the JPEG itself; it is the same trusted source as
+    // the large viewer, avoiding Windows-generated black or empty thumbnails.
+    img.src=url;
+    img.onload=()=>{if(img.isConnected)img.classList.add('thumb-ready');};
+    img.onerror=()=>{
+     if(!img.isConnected)return;
+     img.classList.add('thumb-error');
+     img.alt='Vista previa no disponible';
+     console.warn('Demi: no se pudo mostrar miniatura',id);
+    };
+   }catch(error){
+    if(img.isConnected){img.classList.add('thumb-error');img.alt='Vista previa no disponible';}
+    console.warn('Demi: error cargando miniatura',error);
+   }
+  })().finally(()=>{thumbnailActive--;pumpThumbnails();});
  }
-},{root:$('thumbs'),rootMargin:'120px'});
+}
 let pendingTransform=null,transformFrame=0;
 function applyTransform(){
  preview.style.transform='translate('+currentPanX+'%,'+currentPanY+'%) scale('+currentZoom+')';
@@ -73,7 +80,7 @@ function refreshGallery(photos,selectedId){
  if(fingerprint!==galleryFingerprint){
   galleryFingerprint=fingerprint;
   const box=$('thumbs');
-  for(const img of box.querySelectorAll('.thumb-image'))thumbObserver.unobserve(img);
+  thumbnailQueue=[];
   box.replaceChildren();
   for(const p of photos.slice(-40).reverse()){
    const b=document.createElement('button');b.type='button';b.className='thumb';b.dataset.id=p.id;
@@ -85,7 +92,7 @@ function refreshGallery(photos,selectedId){
    meta.append(title,when);b.append(img,meta);
    b.onclick=()=>{const index=lastPhotos.findIndex(x=>x.id===p.id);if(index>=0)void window.demi.navigate(index-lastPosition);};
    box.append(b);
-   thumbObserver.observe(img);
+   enqueueThumbnail(img,p.id);
   }
  }
  for(const b of $('thumbs').querySelectorAll('.thumb'))b.classList.toggle('chosen',b.dataset.id===selectedId);
