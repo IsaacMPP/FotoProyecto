@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/demi-tether-windows-actions
+      - feature/demi-visor-2-ui-speed
   pull_request:
   workflow_dispatch:
 permissions:
