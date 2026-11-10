@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('demi',{
  latest:()=>ipcRenderer.invoke('latest'),
  toggleAuto:(enabled)=>ipcRenderer.invoke('toggle-auto',enabled),
  photo:(id)=>ipcRenderer.invoke('photo',id),
+ thumbnail:(id)=>ipcRenderer.invoke('thumbnail',id),
  setZoom:(value)=>ipcRenderer.invoke('zoom-set',value),
  setPan:(x,y)=>ipcRenderer.invoke('pan-set',x,y),
  setViewTransform:(zoom,x,y)=>ipcRenderer.invoke('view-transform',zoom,x,y),
