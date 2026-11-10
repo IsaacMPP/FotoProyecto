@@ -3,6 +3,18 @@ const $=id=>document.getElementById(id);
 let prevId='',stamp=0,currentZoom=1,currentPanX=0,currentPanY=0,photoFingerprint='',galleryFingerprint='',dragging=false;
 const preview=$('preview'),stage=$('stage');
 const thumbCache=new Map();
+const thumbObserver=new IntersectionObserver(entries=>{
+ for(const entry of entries){
+  if(!entry.isIntersecting)continue;
+  thumbObserver.unobserve(entry.target);
+  const img=entry.target,pid=img.dataset.photoId;
+  if(!pid)return;
+  void window.demi.thumbnail(pid).then(url=>{
+   if(url&&img.isConnected)img.src=url;
+  }).catch(()=>{});
+ }
+},{root:$('thumbs'),rootMargin:'120px'});
+
 let pendingTransform=null,transformFrame=0;
 function applyTransform(){
  preview.style.transform='translate('+currentPanX+'%,'+currentPanY+'%) scale('+currentZoom+')';
@@ -44,18 +56,20 @@ function refreshGallery(photos,selectedId){
  const fingerprint=photos.slice(-40).map(p=>p.id+'|'+p.mtime).join('|');
  if(fingerprint!==galleryFingerprint){
   galleryFingerprint=fingerprint;
-  const box=$('thumbs');box.replaceChildren();
+  const box=$('thumbs');
+  for(const img of box.querySelectorAll('.thumb-image'))thumbObserver.unobserve(img);
+  box.replaceChildren();
   for(const p of photos.slice(-40).reverse()){
    const b=document.createElement('button');b.type='button';b.className='thumb';b.dataset.id=p.id;
    b.title=p.name;b.setAttribute('aria-label','Ver '+p.name);
-   const img=document.createElement('img');img.className='thumb-image';img.alt='';img.loading='lazy';img.decoding='async';
+   const img=document.createElement('img');img.className='thumb-image';img.alt='';img.loading='lazy';img.decoding='async';img.dataset.photoId=p.id;
    const meta=document.createElement('span');meta.className='thumb-meta';
    const title=document.createElement('span');title.className='thumb-title';title.textContent=p.name;
    const when=document.createElement('span');when.className='thumb-time';when.textContent=recentTime(p.mtime);
    meta.append(title,when);b.append(img,meta);
    b.onclick=()=>{const index=lastPhotos.findIndex(x=>x.id===p.id);if(index>=0)void window.demi.navigate(index-lastPosition);};
    box.append(b);
-   void photoUrl(p).then(url=>{if(url&&img.isConnected)img.src=url;});
+   thumbObserver.observe(img);
   }
  }
  for(const b of $('thumbs').querySelectorAll('.thumb'))b.classList.toggle('chosen',b.dataset.id===selectedId);
