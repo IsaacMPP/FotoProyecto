@@ -158,8 +158,10 @@ async function getThumbnail(id){
   // Windows Shell thumbnail providers may return nothing for photos
   // transferred by Canon, even when the original JPEG is perfectly valid.
   // Decode a small thumbnail from the file itself as a reliable fallback.
-  let image=await nativeImage.createThumbnailFromPath(item.file,{size:{width:176,height:144}});
-  if(image.isEmpty()){
+  let image=null;
+  try{image=await nativeImage.createThumbnailFromPath(item.file,{size:{width:176,height:144}});}
+  catch(error){console.warn('Windows no generó miniatura:',path.basename(item.file),error.message);}
+  if(!image||image.isEmpty()){
    const full=nativeImage.createFromPath(item.file);
    if(full.isEmpty())return null;
    image=full.resize({width:176,height:144,quality:'good'});
